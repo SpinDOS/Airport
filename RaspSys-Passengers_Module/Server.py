@@ -30,6 +30,14 @@ surnameslist=['Абрамов','Авдеев','Агафонов','Аксёнов
 malenameslist=['Александр','Марк','Георгий','Артемий','Дмитрий','Константин','Давид','Эмиль','Максим','Тимур','Платон','Назар','Сергей','Олег','Анатолий','Савва','Андрей','Ярослав','Григорий','Ян','Алексей','Антон','Демид','Рустам','Артём','Николай','Данила','Игнат','Илья','Глеб','Станислав','Влад','Кирилл','Данил','Василий','Альберт','Михаил','Савелий','Федор','Тамерлан','Никита','Вадим','Родион','Айдар','Матвей','Степан','Леонид','Роберт','Роман','Юрий','Одиссей','Адель','Егор','Богдан','Валерий','Марсель','Арсений','Артур','Святослав','Ильдар','Иван','Семен','Борис','Самир','Денис','Макар','Эдуард','Тихон','Евгений','Лев','Марат','Рамиль','Даниил','Виктор','Герман','Ринат','Тимофей','Елисей','Даниэль','Радмир','Владислав','Виталий','Петр','Филипп','Игорь','Вячеслав','Амир','Арсен','Владимир','Захар','Всеволод','Ростислав','Павел','Мирон','Мирослав','Святогор','Руслан','Дамир','Гордей',' Яромир']
 femalenameslist=['Анастасия','Марина','Мирослава','Марьяна','Анна','Светлана','Галина','Анжелика','Мария','Варвара','Людмила','Нелли','Елена','Софья','Валентина','Влада','Дарья','Диана','Нина','Виталина','Алина','Яна','Эмилия','Майя','Ирина','Кира','Камилла','Тамара','Екатерина','Ангелина','Альбина','Мелания','Арина','Маргарита','Лилия','Лиана','Полина','Ева','Любовь','Зарина','Ольга','Алёна','Лариса','Василина','Юлия','Дарина','Эвелина','Алия','Татьяна','Карина','Инна','Владислава','Наталья','Василиса','Агата','Самира','Виктория','Олеся','Амелия','Антонина','Елизавета','Аделина','Амина','Ника','Ксения','Оксана','Эльвира','Мадина','Милана','Таисия','Ярослава','Наташа','Вероника','Надежда','Стефания','Снежана','Алиса','Евгения','Регина','Каролина','Валерия','Элина','Алла','Юлиана','Александра','Злата','Виолетта','Ариана','Ульяна','Есения','Лидия','Эльмира','Кристина','Милена','Амалия','Ясмина','София','Вера','Наталия',' Сабина']
 
+
+def random_date(start, end):
+    """Generate a random datetime between `start` and `end`"""
+    return start + datetime.timedelta(
+        # Get a random amount of seconds between `start` and `end`
+        seconds=random.randint(0, int((end - start).total_seconds())),
+    )
+
 @app.route('/passengers', methods=['POST','GET','DELETE'])
 def passengers_api():
     if request.method == 'GET':
@@ -49,7 +57,8 @@ def passengers_api():
             return 400 # Invalid UUIDs
 
     elif request.method == 'POST':
-        count = request.json['count'] if 'count' in request.json else 1#request.json.get('count', default = 1, type = int)
+        count = request.json['count'] if 'count' in request.json else 1
+        place = request.json['place'] if 'place' in request.json else 'Unknown'
         if (count < 1 or count > 25):
             return 400 # To much passengers
         for i in range(count):
@@ -65,12 +74,28 @@ def passengers_api():
                 patronymic = patronymic[:-1] + ('ович' if gender=='male' else 'евна')
             else:
                 patronymic = patronymic + ('ович' if gender=='male' else 'овна')
-            birthdate = datetime.datetime.now() # временно!
+            date_from = datetime.datetime(1940,1,1) # max = 75 лет
+            date_to = datetime.datetime(2000,1,1) # min = 18 лет
+            birthdate = random_date(date_from, date_to)
             flight = uuid.uuid4() # задавать входным параметром
-            state = 'Unknown' # задавать входным параметром
-            new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = state)
+            new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place)
             db.session.add(new_passenger)
         db.session.commit()
         return jsonify({'result': 'OK'}), 200
     elif request.method == 'DELETE':
-        pass
+        confirm = request.json['confirm'] if 'confirm' in request.json else False
+        id = request.json['id'] if 'id' in request.json else ''
+        if (id != ''):
+            res = db.session.query(Passenger).filter(Passenger.Id == id).first()
+            if (res is None):
+                return 404
+            else:
+                Passenger.query.filter(Passenger.Id == id).delete()
+                db.session.commit()
+                return jsonify({'result': 'OK'}), 200
+        elif (confirm == 1):
+            Passenger.query.delete()
+            db.session.commit()
+            return jsonify({'result': 'OK'}), 200
+        else:
+            return 400

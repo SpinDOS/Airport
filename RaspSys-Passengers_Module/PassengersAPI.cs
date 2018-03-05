@@ -20,7 +20,54 @@ namespace RaspSys_Passengers_Module
           System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 
-    public class Passenger
+    public class GenerationPlace
+    {
+        public string Code { get; }
+        public string UserString { get; }
+        private bool AvailableForGeneration { get; }
+
+        private static GenerationPlace[] Places;
+
+        public static GenerationPlace FromString(string str)
+        {
+            return Places.FirstOrDefault(p => p.UserString == str);
+        }
+
+        public static GenerationPlace FromCode(string code)
+        {
+            return Places.FirstOrDefault(p => p.Code == code);
+        }
+
+        public override string ToString()
+        {
+            return UserString;
+        }
+
+        private GenerationPlace(string code, string userStr, bool availableForGen = false)
+        {
+            Code = code;
+            UserString = userStr;
+            AvailableForGeneration = availableForGen;
+        }
+
+        static GenerationPlace()
+        {
+            Places = new GenerationPlace[]{
+                new GenerationPlace("Unknown", "Неизвестно", true),
+                new GenerationPlace("WaitForBus", "Ожидает посадку в автобус"),
+                new GenerationPlace("InBus", "Едет в автобусе"),
+                new GenerationPlace("WaitForAirplane", "Ожидает посадку в самолёт"),
+                new GenerationPlace("InAirplane", "В самолёте", true)
+            };
+        }
+
+        public static IEnumerable<GenerationPlace> GetPlacesAvailableForGeneration()
+        {
+            return Places.Where(p => p.AvailableForGeneration);
+        }
+    }
+
+public class Passenger
     {
         public Guid Id { get; set; }
         public string first_name { get; set; }
@@ -45,12 +92,15 @@ namespace RaspSys_Passengers_Module
 
     public static class PassengersAPI
     {
-        public static void AddPassengers(byte count = 1)
+        public static void AddPassengers(byte count = 1, GenerationPlace place = null)
         {
             if (count < 1 || count > 25)
                 throw new IncorrectArgumentsException("Count must from 1 to 25");
 
-            PostRequest("/passengers", new { count = count });
+            if (place == null)
+                place = GenerationPlace.FromCode("Unknown");
+
+            Request("/passengers", new { count = count, place = place.Code});
         }
 
         public static List<Passenger> GetAllPassengers(bool extended = false)
@@ -78,6 +128,38 @@ namespace RaspSys_Passengers_Module
                  arg = new { ids = String.Join(",", ids.Select(i => i.ToString())) };
             var data = GetRequest("/passengers", arg);
             return JsonConvert.DeserializeObject<List<Passenger>>(data);
+        }
+
+        public static bool Delete(Guid id)
+        {
+            var arg = new { id = id.ToString() };
+            try
+            {
+                Request("/passengers", arg, "DELETE");
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static bool DeleteAll(bool confirm = false)
+        {
+            if (!confirm)
+                //throw new IncorrectArgumentsException("Требуется подтверждение");
+                return false;
+
+            var arg = new { confirm = 1 };
+            try
+            {
+                Request("/passengers", arg, "DELETE");
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         private static string GetQueryString(object obj)
@@ -109,10 +191,10 @@ namespace RaspSys_Passengers_Module
             }
         }
 
-        private static void PostRequest(string url, object obj)
+        private static string Request(string url, object obj, string method = "POST")
         {
             var httpWebRequest = (HttpWebRequest)WebRequest.Create("http://quantum0.pythonanywhere.com" + url);
-            httpWebRequest.Method = "POST";
+            httpWebRequest.Method = method;
             if (obj != null)
             {
                 var body = JsonConvert.SerializeObject(obj);
@@ -123,19 +205,19 @@ namespace RaspSys_Passengers_Module
                     streamWriter.Flush();
                     streamWriter.Close();
                 }
+            }
 
-                try
+            try
+            {
+                var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
                 {
-                    var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
-                    using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-                    {
-                        var result = streamReader.ReadToEnd();
-                    }
+                    return streamReader.ReadToEnd();
                 }
-                catch (Exception e)
-                {
-                    throw e;
-                }
+            }
+            catch (Exception e)
+            {
+                throw e;
             }
         } 
     }

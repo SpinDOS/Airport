@@ -28,21 +28,27 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
             this.listBox1 = new System.Windows.Forms.ListBox();
             this.button_PostPassenger = new System.Windows.Forms.Button();
             this.textBoxDetails = new System.Windows.Forms.TextBox();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.groupBox2 = new System.Windows.Forms.GroupBox();
-            this.comboBox1 = new System.Windows.Forms.ComboBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.label1 = new System.Windows.Forms.Label();
+            this.buttonAutogeneration = new System.Windows.Forms.Button();
             this.numericUpDownPassengersCount = new System.Windows.Forms.NumericUpDown();
-            this.button1 = new System.Windows.Forms.Button();
-            this.groupBox3 = new System.Windows.Forms.GroupBox();
-            this.button2 = new System.Windows.Forms.Button();
-            this.button3 = new System.Windows.Forms.Button();
+            this.comboBoxPlaceOfGeneration = new System.Windows.Forms.ComboBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.checkBoxAutoupdate = new System.Windows.Forms.CheckBox();
             this.labelCount = new System.Windows.Forms.Label();
+            this.groupBox3 = new System.Windows.Forms.GroupBox();
+            this.buttonRemoveAll = new System.Windows.Forms.Button();
+            this.buttonRemoveCurrent = new System.Windows.Forms.Button();
+            this.timerAutoupdate = new System.Windows.Forms.Timer(this.components);
+            this.timerAutoappend = new System.Windows.Forms.Timer(this.components);
             this.groupBox1.SuspendLayout();
-            this.groupBox2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassengersCount)).BeginInit();
+            this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -60,7 +66,8 @@
             // 
             // button_PostPassenger
             // 
-            this.button_PostPassenger.Location = new System.Drawing.Point(169, 126);
+            this.button_PostPassenger.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.button_PostPassenger.Location = new System.Drawing.Point(169, 69);
             this.button_PostPassenger.Name = "button_PostPassenger";
             this.button_PostPassenger.Size = new System.Drawing.Size(146, 23);
             this.button_PostPassenger.TabIndex = 1;
@@ -80,9 +87,11 @@
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.button1);
+            this.groupBox1.Controls.Add(this.label2);
+            this.groupBox1.Controls.Add(this.label1);
+            this.groupBox1.Controls.Add(this.buttonAutogeneration);
             this.groupBox1.Controls.Add(this.numericUpDownPassengersCount);
-            this.groupBox1.Controls.Add(this.comboBox1);
+            this.groupBox1.Controls.Add(this.comboBoxPlaceOfGeneration);
             this.groupBox1.Controls.Add(this.button_PostPassenger);
             this.groupBox1.Location = new System.Drawing.Point(378, 12);
             this.groupBox1.Name = "groupBox1";
@@ -91,33 +100,41 @@
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Генерация";
             // 
-            // groupBox2
+            // label2
             // 
-            this.groupBox2.Controls.Add(this.labelCount);
-            this.groupBox2.Controls.Add(this.listBox1);
-            this.groupBox2.Controls.Add(this.textBoxDetails);
-            this.groupBox2.Location = new System.Drawing.Point(12, 12);
-            this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(360, 550);
-            this.groupBox2.TabIndex = 4;
-            this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Просмотр";
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(6, 45);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(211, 13);
+            this.label2.TabIndex = 6;
+            this.label2.Text = "Количество пассажиров для генерации:";
             // 
-            // comboBox1
+            // label1
             // 
-            this.comboBox1.FormattingEnabled = true;
-            this.comboBox1.Items.AddRange(new object[] {
-            "В самолёте",
-            "На земле"});
-            this.comboBox1.Location = new System.Drawing.Point(6, 19);
-            this.comboBox1.Name = "comboBox1";
-            this.comboBox1.Size = new System.Drawing.Size(188, 21);
-            this.comboBox1.TabIndex = 2;
-            this.comboBox1.Text = "Место генерации пассажиров";
+            this.label1.AutoSize = true;
+            this.label1.Location = new System.Drawing.Point(6, 19);
+            this.label1.Name = "label1";
+            this.label1.Size = new System.Drawing.Size(163, 13);
+            this.label1.TabIndex = 5;
+            this.label1.Text = "Место генерации пассажиров:";
+            // 
+            // buttonAutogeneration
+            // 
+            this.buttonAutogeneration.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.buttonAutogeneration.Location = new System.Drawing.Point(6, 155);
+            this.buttonAutogeneration.Name = "buttonAutogeneration";
+            this.buttonAutogeneration.Size = new System.Drawing.Size(309, 23);
+            this.buttonAutogeneration.TabIndex = 4;
+            this.buttonAutogeneration.Text = "Запустить автоматическую генерацию";
+            this.buttonAutogeneration.UseVisualStyleBackColor = true;
+            this.buttonAutogeneration.Click += new System.EventHandler(this.buttonAutogeneration_Click);
             // 
             // numericUpDownPassengersCount
             // 
-            this.numericUpDownPassengersCount.Location = new System.Drawing.Point(88, 64);
+            this.numericUpDownPassengersCount.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.numericUpDownPassengersCount.Location = new System.Drawing.Point(223, 43);
             this.numericUpDownPassengersCount.Maximum = new decimal(new int[] {
             25,
             0,
@@ -129,7 +146,7 @@
             0,
             0});
             this.numericUpDownPassengersCount.Name = "numericUpDownPassengersCount";
-            this.numericUpDownPassengersCount.Size = new System.Drawing.Size(120, 20);
+            this.numericUpDownPassengersCount.Size = new System.Drawing.Size(92, 20);
             this.numericUpDownPassengersCount.TabIndex = 3;
             this.numericUpDownPassengersCount.Value = new decimal(new int[] {
             1,
@@ -137,43 +154,40 @@
             0,
             0});
             // 
-            // button1
+            // comboBoxPlaceOfGeneration
             // 
-            this.button1.Location = new System.Drawing.Point(6, 155);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(309, 23);
-            this.button1.TabIndex = 4;
-            this.button1.Text = "Запустить автоматическую генерацию";
-            this.button1.UseVisualStyleBackColor = true;
+            this.comboBoxPlaceOfGeneration.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.comboBoxPlaceOfGeneration.FormattingEnabled = true;
+            this.comboBoxPlaceOfGeneration.Location = new System.Drawing.Point(175, 16);
+            this.comboBoxPlaceOfGeneration.Name = "comboBoxPlaceOfGeneration";
+            this.comboBoxPlaceOfGeneration.Size = new System.Drawing.Size(140, 21);
+            this.comboBoxPlaceOfGeneration.TabIndex = 2;
+            this.comboBoxPlaceOfGeneration.Text = "Место генерации";
             // 
-            // groupBox3
+            // groupBox2
             // 
-            this.groupBox3.Controls.Add(this.button3);
-            this.groupBox3.Controls.Add(this.button2);
-            this.groupBox3.Location = new System.Drawing.Point(384, 202);
-            this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(315, 354);
-            this.groupBox3.TabIndex = 5;
-            this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Управление";
+            this.groupBox2.Controls.Add(this.checkBoxAutoupdate);
+            this.groupBox2.Controls.Add(this.labelCount);
+            this.groupBox2.Controls.Add(this.listBox1);
+            this.groupBox2.Controls.Add(this.textBoxDetails);
+            this.groupBox2.Location = new System.Drawing.Point(12, 12);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(360, 550);
+            this.groupBox2.TabIndex = 4;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "Просмотр";
             // 
-            // button2
+            // checkBoxAutoupdate
             // 
-            this.button2.Location = new System.Drawing.Point(32, 42);
-            this.button2.Name = "button2";
-            this.button2.Size = new System.Drawing.Size(75, 23);
-            this.button2.TabIndex = 0;
-            this.button2.Text = "Удалить";
-            this.button2.UseVisualStyleBackColor = true;
-            // 
-            // button3
-            // 
-            this.button3.Location = new System.Drawing.Point(32, 72);
-            this.button3.Name = "button3";
-            this.button3.Size = new System.Drawing.Size(106, 23);
-            this.button3.TabIndex = 1;
-            this.button3.Text = "Удалить всех";
-            this.button3.UseVisualStyleBackColor = true;
+            this.checkBoxAutoupdate.AutoSize = true;
+            this.checkBoxAutoupdate.Location = new System.Drawing.Point(273, 18);
+            this.checkBoxAutoupdate.Name = "checkBoxAutoupdate";
+            this.checkBoxAutoupdate.Size = new System.Drawing.Size(81, 17);
+            this.checkBoxAutoupdate.TabIndex = 2;
+            this.checkBoxAutoupdate.Text = "Autoupdate";
+            this.checkBoxAutoupdate.UseVisualStyleBackColor = true;
+            this.checkBoxAutoupdate.CheckedChanged += new System.EventHandler(this.checkBoxAutoupdate_CheckedChanged);
             // 
             // labelCount
             // 
@@ -183,6 +197,48 @@
             this.labelCount.Size = new System.Drawing.Size(134, 13);
             this.labelCount.TabIndex = 3;
             this.labelCount.Text = "Количество пассажиров:";
+            // 
+            // groupBox3
+            // 
+            this.groupBox3.Controls.Add(this.buttonRemoveAll);
+            this.groupBox3.Controls.Add(this.buttonRemoveCurrent);
+            this.groupBox3.Location = new System.Drawing.Point(384, 202);
+            this.groupBox3.Name = "groupBox3";
+            this.groupBox3.Size = new System.Drawing.Size(315, 354);
+            this.groupBox3.TabIndex = 5;
+            this.groupBox3.TabStop = false;
+            this.groupBox3.Text = "Управление";
+            // 
+            // buttonRemoveAll
+            // 
+            this.buttonRemoveAll.Location = new System.Drawing.Point(6, 48);
+            this.buttonRemoveAll.Name = "buttonRemoveAll";
+            this.buttonRemoveAll.Size = new System.Drawing.Size(106, 23);
+            this.buttonRemoveAll.TabIndex = 1;
+            this.buttonRemoveAll.Text = "Удалить всех";
+            this.buttonRemoveAll.UseVisualStyleBackColor = true;
+            this.buttonRemoveAll.Click += new System.EventHandler(this.buttonRemoveAll_Click);
+            // 
+            // buttonRemoveCurrent
+            // 
+            this.buttonRemoveCurrent.Enabled = false;
+            this.buttonRemoveCurrent.Location = new System.Drawing.Point(6, 19);
+            this.buttonRemoveCurrent.Name = "buttonRemoveCurrent";
+            this.buttonRemoveCurrent.Size = new System.Drawing.Size(303, 23);
+            this.buttonRemoveCurrent.TabIndex = 0;
+            this.buttonRemoveCurrent.Text = "Удалить 00000000-0000-0000-0000-000000000000";
+            this.buttonRemoveCurrent.UseVisualStyleBackColor = true;
+            this.buttonRemoveCurrent.Click += new System.EventHandler(this.buttonRemoveCurrent_Click);
+            // 
+            // timerAutoupdate
+            // 
+            this.timerAutoupdate.Interval = 5000;
+            this.timerAutoupdate.Tick += new System.EventHandler(this.timerAutoupdate_Tick);
+            // 
+            // timerAutoappend
+            // 
+            this.timerAutoappend.Interval = 5000;
+            this.timerAutoappend.Tick += new System.EventHandler(this.timerAutoappend_Tick);
             // 
             // Form1
             // 
@@ -196,9 +252,10 @@
             this.Text = "Аэропорт. Компонента - Пассажиры";
             this.Load += new System.EventHandler(this.Form1_Load);
             this.groupBox1.ResumeLayout(false);
+            this.groupBox1.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassengersCount)).EndInit();
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassengersCount)).EndInit();
             this.groupBox3.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -210,14 +267,19 @@
         private System.Windows.Forms.Button button_PostPassenger;
         private System.Windows.Forms.TextBox textBoxDetails;
         private System.Windows.Forms.GroupBox groupBox1;
-        private System.Windows.Forms.ComboBox comboBox1;
+        private System.Windows.Forms.ComboBox comboBoxPlaceOfGeneration;
         private System.Windows.Forms.GroupBox groupBox2;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button buttonAutogeneration;
         private System.Windows.Forms.NumericUpDown numericUpDownPassengersCount;
         private System.Windows.Forms.GroupBox groupBox3;
-        private System.Windows.Forms.Button button3;
-        private System.Windows.Forms.Button button2;
+        private System.Windows.Forms.Button buttonRemoveAll;
+        private System.Windows.Forms.Button buttonRemoveCurrent;
         private System.Windows.Forms.Label labelCount;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.CheckBox checkBoxAutoupdate;
+        private System.Windows.Forms.Timer timerAutoupdate;
+        private System.Windows.Forms.Timer timerAutoappend;
     }
 }
 
