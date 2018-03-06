@@ -17,10 +17,11 @@ class Passenger(db.Model):
     luggage = db.Column(db.String(36))
     flight = db.Column(db.String(36))
     state = db.Column(db.Enum('Unknown', 'WaitForBus', 'InBus', 'WaitForAirplane', 'InAirplane'))
+    transport = db.Column(db.String(36)) # ID транспорта, в котором находиться пассажир
 
     def serialize(self, extended = False):
         if extended:
-            return {'id': self.Id, 'first_name': self.first_name, 'last_name': self.last_name, 'patronymic': self.patronymic, 'gender': self.gender, 'birthdate': self.birthdate,'luggage': self.luggage,'flight': self.flight, 'state': self.state}
+            return {'id': self.Id, 'first_name': self.first_name, 'last_name': self.last_name, 'patronymic': self.patronymic, 'gender': self.gender, 'birthdate': self.birthdate,'luggage': self.luggage,'flight': self.flight, 'state': self.state, 'transport': self.transport}
         else:
             return {'id': self.Id, 'first_name': self.first_name, 'luggage': self.luggage,'flight': self.flight, 'state': self.state}
 
@@ -41,8 +42,13 @@ def random_date(start, end):
 @app.route('/passengers', methods=['POST','GET','DELETE'])
 def passengers_api():
     if request.method == 'GET':
+        telelog(2)
         try:
-            if 'id' in request.args.keys():
+            if 'flight' in request.args.keys():
+                fid = request.args['flight']
+                telelog(1)
+                res = db.session.query(Passenger).filter(Passenger.flight == fid).all()
+            elif 'id' in request.args.keys():
                 id = request.args['id']
                 res = db.session.query(Passenger).filter(Passenger.Id == id).first()
                 if (res is None):
@@ -59,6 +65,7 @@ def passengers_api():
     elif request.method == 'POST':
         count = request.json['count'] if 'count' in request.json else 1
         place = request.json['place'] if 'place' in request.json else 'Unknown'
+        flight = request.json['flight'] if 'flight' in request.json else '00000000-0000-0000-0000-000000000000'
         if (count < 1 or count > 25):
             return 400 # To much passengers
         for i in range(count):
@@ -77,8 +84,8 @@ def passengers_api():
             date_from = datetime.datetime(1940,1,1) # max = 75 лет
             date_to = datetime.datetime(2000,1,1) # min = 18 лет
             birthdate = random_date(date_from, date_to)
-            flight = uuid.uuid4() # задавать входным параметром
-            new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place)
+            transport = None
+            new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place, transport = transport)
             db.session.add(new_passenger)
         db.session.commit()
         return jsonify({'result': 'OK'}), 200
@@ -99,3 +106,54 @@ def passengers_api():
             return jsonify({'result': 'OK'}), 200
         else:
             return 400
+
+@app.route('/boarding/<transport>', methods=['POST','GET'])
+def boarding(transport):
+    if transport in ['bus', 'airplane']:
+        if request.method == 'POST':
+            transportId = request.json['transportID'] if 'transportID' in request.json else None
+            flightId = request.json['flightID'] if 'flightID' in request.json else None
+            seats = request.json['seats'] if 'seats' in request.json else -1
+            ids = request.json['ids'] if 'ids' in request.json else ([request.json['id']] if 'id' in request.json else [])
+        else:
+            transportId = request.args['transportID'] if 'transportID' in request.args.keys() else None
+            flightId = request.args['flightID'] if 'flightID' in request.args.keys() else None
+            seats = request.args['seats'] if 'seats' in request.args.keys() else -1
+            ids = request.args['ids'].split(',') if 'ids' in request.args.keys() else ([request.args['id']] if 'id' in request.args.keys() else [])
+            telelog(transportId)
+            telelog(seats)
+        return boardinglanding('boarding', transport, ids, transportId, seats, flightId)
+    return 405
+
+@app.route('/landing/<transport>', methods=['POST','GET'])
+def landing(transport):
+    if transport in ['bus', 'airplane']:
+        if request.method == 'POST':
+            transportId = request.json['transportID'] if 'transportID' in request.json else None
+            ids = request.json['ids'] if 'ids' in request.json else ([request.json['id']] if 'id' in request.json else [])
+        else:
+            transportId = request.args['transportID'] if 'transportID' in request.args.keys() else None
+            ids = request.args['ids'].split(',') if 'ids' in request.args.keys() else ([request.args['id']] if 'id' in request.args.keys() else [])
+        return boardinglanding('landing', transport, ids, transportId)
+    return 405
+
+def boardinglanding(action, transport, ids, tid = None, seats = -1, fid = None):
+    if tid is not None:
+        telelog('kek')
+        if action == 'boarding':
+            ids = db.session.query(Passenger).filter(Passenger.flight == fid).filter(Passenger.transport == None)
+            if seats != -1:
+                ids = ids.limit(seats)
+            ids = ids.all()
+            for pas in ids:
+                pas.transport = tid
+                pas.state = 'InBus' if transport == 'bus' else 'InAirplane'
+        else:
+            ids = db.session.query(Passenger).filter(Passenger.transport == tid).all()
+            for pas in ids:
+                pas.transport = None
+                pas.state = 'WaitForAirplane' if transport == 'bus' else 'WaitForBus' # WaitForBus не точно. что делает пассажир после самолёта?
+        db.session.commit()
+    telelog('ACTION: {}\nTRANSPORT: {} {}\nIDS: {}\nSEATS COUNT: {}'.format(action, transport.upper(), tid, [x.Id for x in ids], seats))
+
+    return jsonify({'result': 'OK', 'passengers': [x.Id for x in ids]}), 200

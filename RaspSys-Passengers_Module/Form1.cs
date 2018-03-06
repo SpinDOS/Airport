@@ -19,12 +19,14 @@ namespace RaspSys_Passengers_Module
         public Form1()
         {
             InitializeComponent();
+            maskedTextBoxFlightID.ValidatingType = typeof(Guid);
         }
 
         private void GeneratePassengers(int count)
         {
             var where = comboBoxPlaceOfGeneration.SelectedItem as GenerationPlace;
-            PassengersAPI.AddPassengers((byte)count, where);
+            var flight = (Guid)maskedTextBoxFlightID.ValidateText();
+            PassengersAPI.AddPassengers((byte)count, where, flight);
         }
 
         private void button_PostPassenger_Click(object sender, EventArgs e)
@@ -32,6 +34,11 @@ namespace RaspSys_Passengers_Module
             if (comboBoxPlaceOfGeneration.SelectedIndex == -1)
             {
                 MessageBox.Show("Укажите место генерации пассажиров", "Ошибка создания пассажира", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+            if (maskedTextBoxFlightID.ValidateText() == null)
+            {
+                MessageBox.Show("Укажите рейс, на который генерируются пассажиры", "Ошибка создания пассажира", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
@@ -101,6 +108,11 @@ namespace RaspSys_Passengers_Module
                     MessageBox.Show("Укажите место генерации пассажиров", "Ошибка создания пассажира", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     return;
                 }
+                if (maskedTextBoxFlightID.ValidateText() == null)
+                {
+                    MessageBox.Show("Укажите рейс, на который генерируются пассажиры", "Ошибка создания пассажира", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    return;
+                }
 
                 buttonAutogeneration.Text = "Остановить автоматическую генерацию";
                 timerAutoappend.Start();
@@ -122,6 +134,32 @@ namespace RaspSys_Passengers_Module
         private void timerAutoupdate_Tick(object sender, EventArgs e)
         {
             UpdateList();
+        }
+
+        private void maskedTextBox1_TypeValidationCompleted(object sender, TypeValidationEventArgs e)
+        {
+            if (e.IsValidInput)
+                maskedTextBoxFlightID.ForeColor = Color.DarkGreen;
+            else
+                maskedTextBoxFlightID.ForeColor = Color.Red;
+        }
+
+        private void radioButtonBoarding_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButtonBoarding.Checked)
+            {
+                maskedTextBoxFlightIdForTransport.Enabled = true;
+                numericUpDownSeatsCount.Enabled = true;
+            }
+        }
+
+        private void radioButtonLanding_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButtonLanding.Checked)
+            {
+                maskedTextBoxFlightIdForTransport.Enabled = false;
+                numericUpDownSeatsCount.Enabled = false;
+            }
         }
     }
 }

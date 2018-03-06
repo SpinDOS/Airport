@@ -46,10 +46,26 @@
             this.buttonRemoveCurrent = new System.Windows.Forms.Button();
             this.timerAutoupdate = new System.Windows.Forms.Timer(this.components);
             this.timerAutoappend = new System.Windows.Forms.Timer(this.components);
+            this.label3 = new System.Windows.Forms.Label();
+            this.maskedTextBoxFlightID = new System.Windows.Forms.MaskedTextBox();
+            this.groupBox4 = new System.Windows.Forms.GroupBox();
+            this.button1 = new System.Windows.Forms.Button();
+            this.radioButtonBoarding = new System.Windows.Forms.RadioButton();
+            this.radioButtonLanding = new System.Windows.Forms.RadioButton();
+            this.radioButtonBus = new System.Windows.Forms.RadioButton();
+            this.radioButtonAirplane = new System.Windows.Forms.RadioButton();
+            this.maskedTextBoxTransportID = new System.Windows.Forms.MaskedTextBox();
+            this.label4 = new System.Windows.Forms.Label();
+            this.label5 = new System.Windows.Forms.Label();
+            this.maskedTextBoxFlightIdForTransport = new System.Windows.Forms.MaskedTextBox();
+            this.numericUpDownSeatsCount = new System.Windows.Forms.NumericUpDown();
+            this.label6 = new System.Windows.Forms.Label();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassengersCount)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
+            this.groupBox4.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownSeatsCount)).BeginInit();
             this.SuspendLayout();
             // 
             // listBox1
@@ -67,7 +83,7 @@
             // button_PostPassenger
             // 
             this.button_PostPassenger.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.button_PostPassenger.Location = new System.Drawing.Point(169, 69);
+            this.button_PostPassenger.Location = new System.Drawing.Point(169, 126);
             this.button_PostPassenger.Name = "button_PostPassenger";
             this.button_PostPassenger.Size = new System.Drawing.Size(146, 23);
             this.button_PostPassenger.TabIndex = 1;
@@ -87,6 +103,8 @@
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.maskedTextBoxFlightID);
+            this.groupBox1.Controls.Add(this.label3);
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.label1);
             this.groupBox1.Controls.Add(this.buttonAutogeneration);
@@ -202,12 +220,12 @@
             // 
             this.groupBox3.Controls.Add(this.buttonRemoveAll);
             this.groupBox3.Controls.Add(this.buttonRemoveCurrent);
-            this.groupBox3.Location = new System.Drawing.Point(384, 202);
+            this.groupBox3.Location = new System.Drawing.Point(378, 202);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(315, 354);
+            this.groupBox3.Size = new System.Drawing.Size(321, 81);
             this.groupBox3.TabIndex = 5;
             this.groupBox3.TabStop = false;
-            this.groupBox3.Text = "Управление";
+            this.groupBox3.Text = "Удаление";
             // 
             // buttonRemoveAll
             // 
@@ -240,11 +258,175 @@
             this.timerAutoappend.Interval = 5000;
             this.timerAutoappend.Tick += new System.EventHandler(this.timerAutoappend_Tick);
             // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(9, 72);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(54, 13);
+            this.label3.TabIndex = 8;
+            this.label3.Text = "ID рейса:";
+            // 
+            // maskedTextBoxFlightID
+            // 
+            this.maskedTextBoxFlightID.Location = new System.Drawing.Point(69, 69);
+            this.maskedTextBoxFlightID.Mask = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
+            this.maskedTextBoxFlightID.Name = "maskedTextBoxFlightID";
+            this.maskedTextBoxFlightID.Size = new System.Drawing.Size(246, 20);
+            this.maskedTextBoxFlightID.TabIndex = 9;
+            this.maskedTextBoxFlightID.Text = "00000000FFFFABCD0000123456789ABC";
+            this.maskedTextBoxFlightID.TypeValidationCompleted += new System.Windows.Forms.TypeValidationEventHandler(this.maskedTextBox1_TypeValidationCompleted);
+            // 
+            // groupBox4
+            // 
+            this.groupBox4.Controls.Add(this.label6);
+            this.groupBox4.Controls.Add(this.numericUpDownSeatsCount);
+            this.groupBox4.Controls.Add(this.maskedTextBoxFlightIdForTransport);
+            this.groupBox4.Controls.Add(this.label5);
+            this.groupBox4.Controls.Add(this.label4);
+            this.groupBox4.Controls.Add(this.maskedTextBoxTransportID);
+            this.groupBox4.Controls.Add(this.radioButtonAirplane);
+            this.groupBox4.Controls.Add(this.radioButtonBus);
+            this.groupBox4.Controls.Add(this.radioButtonLanding);
+            this.groupBox4.Controls.Add(this.radioButtonBoarding);
+            this.groupBox4.Controls.Add(this.button1);
+            this.groupBox4.Location = new System.Drawing.Point(378, 289);
+            this.groupBox4.Name = "groupBox4";
+            this.groupBox4.Size = new System.Drawing.Size(321, 273);
+            this.groupBox4.TabIndex = 2;
+            this.groupBox4.TabStop = false;
+            this.groupBox4.Text = "Управление транспортом";
+            // 
+            // button1
+            // 
+            this.button1.Location = new System.Drawing.Point(234, 232);
+            this.button1.Name = "button1";
+            this.button1.Size = new System.Drawing.Size(75, 23);
+            this.button1.TabIndex = 0;
+            this.button1.Text = "Выполнить";
+            this.button1.UseVisualStyleBackColor = true;
+            // 
+            // radioButtonBoarding
+            // 
+            this.radioButtonBoarding.AutoSize = true;
+            this.radioButtonBoarding.Location = new System.Drawing.Point(12, 20);
+            this.radioButtonBoarding.Name = "radioButtonBoarding";
+            this.radioButtonBoarding.Size = new System.Drawing.Size(69, 17);
+            this.radioButtonBoarding.TabIndex = 1;
+            this.radioButtonBoarding.TabStop = true;
+            this.radioButtonBoarding.Text = "Посадка";
+            this.radioButtonBoarding.UseVisualStyleBackColor = true;
+            this.radioButtonBoarding.CheckedChanged += new System.EventHandler(this.radioButtonBoarding_CheckedChanged);
+            // 
+            // radioButtonLanding
+            // 
+            this.radioButtonLanding.AutoSize = true;
+            this.radioButtonLanding.Location = new System.Drawing.Point(12, 43);
+            this.radioButtonLanding.Name = "radioButtonLanding";
+            this.radioButtonLanding.Size = new System.Drawing.Size(70, 17);
+            this.radioButtonLanding.TabIndex = 2;
+            this.radioButtonLanding.TabStop = true;
+            this.radioButtonLanding.Text = "Высадка";
+            this.radioButtonLanding.UseVisualStyleBackColor = true;
+            this.radioButtonLanding.CheckedChanged += new System.EventHandler(this.radioButtonLanding_CheckedChanged);
+            // 
+            // radioButtonBus
+            // 
+            this.radioButtonBus.AutoSize = true;
+            this.radioButtonBus.Location = new System.Drawing.Point(169, 20);
+            this.radioButtonBus.Name = "radioButtonBus";
+            this.radioButtonBus.Size = new System.Drawing.Size(66, 17);
+            this.radioButtonBus.TabIndex = 3;
+            this.radioButtonBus.TabStop = true;
+            this.radioButtonBus.Text = "Автобус";
+            this.radioButtonBus.UseVisualStyleBackColor = true;
+            // 
+            // radioButtonAirplane
+            // 
+            this.radioButtonAirplane.AutoSize = true;
+            this.radioButtonAirplane.Location = new System.Drawing.Point(169, 44);
+            this.radioButtonAirplane.Name = "radioButtonAirplane";
+            this.radioButtonAirplane.Size = new System.Drawing.Size(69, 17);
+            this.radioButtonAirplane.TabIndex = 4;
+            this.radioButtonAirplane.TabStop = true;
+            this.radioButtonAirplane.Text = "Самолёт";
+            this.radioButtonAirplane.UseVisualStyleBackColor = true;
+            // 
+            // maskedTextBoxTransportID
+            // 
+            this.maskedTextBoxTransportID.Location = new System.Drawing.Point(94, 67);
+            this.maskedTextBoxTransportID.Mask = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
+            this.maskedTextBoxTransportID.Name = "maskedTextBoxTransportID";
+            this.maskedTextBoxTransportID.Size = new System.Drawing.Size(221, 20);
+            this.maskedTextBoxTransportID.TabIndex = 10;
+            this.maskedTextBoxTransportID.Text = "12345678EEEEDCBA0000123456789ABC";
+            // 
+            // label4
+            // 
+            this.label4.AutoSize = true;
+            this.label4.Location = new System.Drawing.Point(9, 70);
+            this.label4.Name = "label4";
+            this.label4.Size = new System.Drawing.Size(82, 13);
+            this.label4.TabIndex = 11;
+            this.label4.Text = "ID транспорта:";
+            // 
+            // label5
+            // 
+            this.label5.AutoSize = true;
+            this.label5.Location = new System.Drawing.Point(9, 97);
+            this.label5.Name = "label5";
+            this.label5.Size = new System.Drawing.Size(54, 13);
+            this.label5.TabIndex = 12;
+            this.label5.Text = "ID рейса:";
+            // 
+            // maskedTextBoxFlightIdForTransport
+            // 
+            this.maskedTextBoxFlightIdForTransport.Location = new System.Drawing.Point(69, 94);
+            this.maskedTextBoxFlightIdForTransport.Mask = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
+            this.maskedTextBoxFlightIdForTransport.Name = "maskedTextBoxFlightIdForTransport";
+            this.maskedTextBoxFlightIdForTransport.Size = new System.Drawing.Size(246, 20);
+            this.maskedTextBoxFlightIdForTransport.TabIndex = 13;
+            this.maskedTextBoxFlightIdForTransport.Text = "00000000FFFFABCD0000123456789ABC";
+            // 
+            // numericUpDownSeatsCount
+            // 
+            this.numericUpDownSeatsCount.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.numericUpDownSeatsCount.Location = new System.Drawing.Point(245, 120);
+            this.numericUpDownSeatsCount.Maximum = new decimal(new int[] {
+            500,
+            0,
+            0,
+            0});
+            this.numericUpDownSeatsCount.Minimum = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            this.numericUpDownSeatsCount.Name = "numericUpDownSeatsCount";
+            this.numericUpDownSeatsCount.Size = new System.Drawing.Size(70, 20);
+            this.numericUpDownSeatsCount.TabIndex = 10;
+            this.numericUpDownSeatsCount.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(9, 122);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(230, 13);
+            this.label6.TabIndex = 14;
+            this.label6.Text = "Количество посадочных мест в транспорте:";
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(713, 569);
+            this.ClientSize = new System.Drawing.Size(707, 569);
+            this.Controls.Add(this.groupBox4);
             this.Controls.Add(this.groupBox3);
             this.Controls.Add(this.groupBox2);
             this.Controls.Add(this.groupBox1);
@@ -257,6 +439,9 @@
             this.groupBox2.ResumeLayout(false);
             this.groupBox2.PerformLayout();
             this.groupBox3.ResumeLayout(false);
+            this.groupBox4.ResumeLayout(false);
+            this.groupBox4.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.numericUpDownSeatsCount)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -280,6 +465,20 @@
         private System.Windows.Forms.CheckBox checkBoxAutoupdate;
         private System.Windows.Forms.Timer timerAutoupdate;
         private System.Windows.Forms.Timer timerAutoappend;
+        private System.Windows.Forms.MaskedTextBox maskedTextBoxFlightID;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.GroupBox groupBox4;
+        private System.Windows.Forms.RadioButton radioButtonAirplane;
+        private System.Windows.Forms.RadioButton radioButtonBus;
+        private System.Windows.Forms.RadioButton radioButtonLanding;
+        private System.Windows.Forms.RadioButton radioButtonBoarding;
+        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.NumericUpDown numericUpDownSeatsCount;
+        private System.Windows.Forms.MaskedTextBox maskedTextBoxFlightIdForTransport;
+        private System.Windows.Forms.Label label5;
+        private System.Windows.Forms.Label label4;
+        private System.Windows.Forms.MaskedTextBox maskedTextBoxTransportID;
     }
 }
 

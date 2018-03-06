@@ -92,7 +92,7 @@ public class Passenger
 
     public static class PassengersAPI
     {
-        public static void AddPassengers(byte count = 1, GenerationPlace place = null)
+        public static void AddPassengers(byte count = 1, GenerationPlace place = null, Guid flight = default(Guid))
         {
             if (count < 1 || count > 25)
                 throw new IncorrectArgumentsException("Count must from 1 to 25");
@@ -100,7 +100,7 @@ public class Passenger
             if (place == null)
                 place = GenerationPlace.FromCode("Unknown");
 
-            Request("/passengers", new { count = count, place = place.Code});
+            Request("/passengers", new { count = count, place = place.Code, flight = flight});
         }
 
         public static List<Passenger> GetAllPassengers(bool extended = false)
