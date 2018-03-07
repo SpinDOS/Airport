@@ -78,6 +78,7 @@ public class Passenger
         public DateTime? birthdate { get; set; }
         public Guid? luggage { get; set; }
         public Guid? flight { get; set; }
+        public Guid? transport { get; set; }
 
         public override string ToString()
         {
@@ -87,6 +88,44 @@ public class Passenger
         public string ToJson()
         {
             return JsonConvert.SerializeObject(this, Formatting.Indented);
+        }
+    }
+
+    public enum AirportAction
+    {
+        Landing,
+        Boarding
+    }
+
+    public enum TransportType
+    {
+        Bus,
+        Airplane
+    }
+
+    public class Transport
+    {
+        public Guid ID { get; }
+        public TransportType Type { get; }
+        public int Seats { get; }
+
+        public Transport(Guid id, TransportType type, int seatsCount = -1)
+        {
+            ID = id;
+            Type = type;
+            Seats = seatsCount;
+        }
+    }
+
+    public class ChangeStateResult
+    {
+        public List<Guid> Passengers { get; }
+        public string Result { get; }
+
+        public ChangeStateResult(string status, List<Guid> passengers)
+        {
+            Passengers = passengers;
+            Result = status;
         }
     }
 
@@ -112,6 +151,17 @@ public class Passenger
                 arg = new object();
             var data = GetRequest("/passengers", arg);
             return JsonConvert.DeserializeObject<List<Passenger>>(data);
+        }
+
+        public static ChangeStateResult ChangeState(AirportAction action, Guid flightID, Transport transport)
+        {
+            var url = action == AirportAction.Boarding ? "/boarding" : "/landing";
+            url += transport.Type == TransportType.Bus ? "/bus" : "/airplane";
+            var result = Request(url, new { flightID = flightID, transportID = transport.ID, seats = transport.Seats }, "POST");
+            //var result = "{\n  \"passengers\": [\n    \"6dda8b6a-8dc0-470d-9cc6-334181f03e6f\"\n  ], \n  \"result\": \"OK\"\n}\n";
+            Newtonsoft.Json.Linq.JObject resp = (Newtonsoft.Json.Linq.JObject)JsonConvert.DeserializeObject<object>(result);
+            ChangeStateResult res = new ChangeStateResult(resp["result"].ToString(), (List < Guid > ) resp["passengers"].ToObject<List<Guid>>());
+            return res;
         }
 
         public static Passenger GetPassenger(Guid id, bool extended = true)

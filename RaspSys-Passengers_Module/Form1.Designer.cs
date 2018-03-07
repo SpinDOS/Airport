@@ -49,7 +49,7 @@
             this.label3 = new System.Windows.Forms.Label();
             this.maskedTextBoxFlightID = new System.Windows.Forms.MaskedTextBox();
             this.groupBox4 = new System.Windows.Forms.GroupBox();
-            this.button1 = new System.Windows.Forms.Button();
+            this.buttonDoAction = new System.Windows.Forms.Button();
             this.radioButtonBoarding = new System.Windows.Forms.RadioButton();
             this.radioButtonLanding = new System.Windows.Forms.RadioButton();
             this.radioButtonBus = new System.Windows.Forms.RadioButton();
@@ -60,12 +60,17 @@
             this.maskedTextBoxFlightIdForTransport = new System.Windows.Forms.MaskedTextBox();
             this.numericUpDownSeatsCount = new System.Windows.Forms.NumericUpDown();
             this.label6 = new System.Windows.Forms.Label();
+            this.panel1 = new System.Windows.Forms.Panel();
+            this.panel2 = new System.Windows.Forms.Panel();
+            this.listBoxActionResult = new System.Windows.Forms.ListBox();
             this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownPassengersCount)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.groupBox3.SuspendLayout();
             this.groupBox4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownSeatsCount)).BeginInit();
+            this.panel1.SuspendLayout();
+            this.panel2.SuspendLayout();
             this.SuspendLayout();
             // 
             // listBox1
@@ -279,17 +284,16 @@
             // 
             // groupBox4
             // 
+            this.groupBox4.Controls.Add(this.listBoxActionResult);
+            this.groupBox4.Controls.Add(this.panel2);
+            this.groupBox4.Controls.Add(this.panel1);
             this.groupBox4.Controls.Add(this.label6);
             this.groupBox4.Controls.Add(this.numericUpDownSeatsCount);
             this.groupBox4.Controls.Add(this.maskedTextBoxFlightIdForTransport);
             this.groupBox4.Controls.Add(this.label5);
             this.groupBox4.Controls.Add(this.label4);
             this.groupBox4.Controls.Add(this.maskedTextBoxTransportID);
-            this.groupBox4.Controls.Add(this.radioButtonAirplane);
-            this.groupBox4.Controls.Add(this.radioButtonBus);
-            this.groupBox4.Controls.Add(this.radioButtonLanding);
-            this.groupBox4.Controls.Add(this.radioButtonBoarding);
-            this.groupBox4.Controls.Add(this.button1);
+            this.groupBox4.Controls.Add(this.buttonDoAction);
             this.groupBox4.Location = new System.Drawing.Point(378, 289);
             this.groupBox4.Name = "groupBox4";
             this.groupBox4.Size = new System.Drawing.Size(321, 273);
@@ -297,19 +301,20 @@
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Управление транспортом";
             // 
-            // button1
+            // buttonDoAction
             // 
-            this.button1.Location = new System.Drawing.Point(234, 232);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(75, 23);
-            this.button1.TabIndex = 0;
-            this.button1.Text = "Выполнить";
-            this.button1.UseVisualStyleBackColor = true;
+            this.buttonDoAction.Location = new System.Drawing.Point(240, 244);
+            this.buttonDoAction.Name = "buttonDoAction";
+            this.buttonDoAction.Size = new System.Drawing.Size(75, 23);
+            this.buttonDoAction.TabIndex = 0;
+            this.buttonDoAction.Text = "Выполнить";
+            this.buttonDoAction.UseVisualStyleBackColor = true;
+            this.buttonDoAction.Click += new System.EventHandler(this.buttonDoAction_Click);
             // 
             // radioButtonBoarding
             // 
             this.radioButtonBoarding.AutoSize = true;
-            this.radioButtonBoarding.Location = new System.Drawing.Point(12, 20);
+            this.radioButtonBoarding.Location = new System.Drawing.Point(5, 3);
             this.radioButtonBoarding.Name = "radioButtonBoarding";
             this.radioButtonBoarding.Size = new System.Drawing.Size(69, 17);
             this.radioButtonBoarding.TabIndex = 1;
@@ -321,7 +326,7 @@
             // radioButtonLanding
             // 
             this.radioButtonLanding.AutoSize = true;
-            this.radioButtonLanding.Location = new System.Drawing.Point(12, 43);
+            this.radioButtonLanding.Location = new System.Drawing.Point(5, 26);
             this.radioButtonLanding.Name = "radioButtonLanding";
             this.radioButtonLanding.Size = new System.Drawing.Size(70, 17);
             this.radioButtonLanding.TabIndex = 2;
@@ -333,7 +338,7 @@
             // radioButtonBus
             // 
             this.radioButtonBus.AutoSize = true;
-            this.radioButtonBus.Location = new System.Drawing.Point(169, 20);
+            this.radioButtonBus.Location = new System.Drawing.Point(6, 3);
             this.radioButtonBus.Name = "radioButtonBus";
             this.radioButtonBus.Size = new System.Drawing.Size(66, 17);
             this.radioButtonBus.TabIndex = 3;
@@ -344,7 +349,7 @@
             // radioButtonAirplane
             // 
             this.radioButtonAirplane.AutoSize = true;
-            this.radioButtonAirplane.Location = new System.Drawing.Point(169, 44);
+            this.radioButtonAirplane.Location = new System.Drawing.Point(6, 26);
             this.radioButtonAirplane.Name = "radioButtonAirplane";
             this.radioButtonAirplane.Size = new System.Drawing.Size(69, 17);
             this.radioButtonAirplane.TabIndex = 4;
@@ -354,7 +359,7 @@
             // 
             // maskedTextBoxTransportID
             // 
-            this.maskedTextBoxTransportID.Location = new System.Drawing.Point(94, 67);
+            this.maskedTextBoxTransportID.Location = new System.Drawing.Point(94, 73);
             this.maskedTextBoxTransportID.Mask = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
             this.maskedTextBoxTransportID.Name = "maskedTextBoxTransportID";
             this.maskedTextBoxTransportID.Size = new System.Drawing.Size(221, 20);
@@ -364,7 +369,7 @@
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(9, 70);
+            this.label4.Location = new System.Drawing.Point(9, 76);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(82, 13);
             this.label4.TabIndex = 11;
@@ -373,7 +378,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(9, 97);
+            this.label5.Location = new System.Drawing.Point(9, 103);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(54, 13);
             this.label5.TabIndex = 12;
@@ -381,7 +386,7 @@
             // 
             // maskedTextBoxFlightIdForTransport
             // 
-            this.maskedTextBoxFlightIdForTransport.Location = new System.Drawing.Point(69, 94);
+            this.maskedTextBoxFlightIdForTransport.Location = new System.Drawing.Point(69, 100);
             this.maskedTextBoxFlightIdForTransport.Mask = "AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA";
             this.maskedTextBoxFlightIdForTransport.Name = "maskedTextBoxFlightIdForTransport";
             this.maskedTextBoxFlightIdForTransport.Size = new System.Drawing.Size(246, 20);
@@ -392,7 +397,7 @@
             // 
             this.numericUpDownSeatsCount.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.numericUpDownSeatsCount.Location = new System.Drawing.Point(245, 120);
+            this.numericUpDownSeatsCount.Location = new System.Drawing.Point(245, 126);
             this.numericUpDownSeatsCount.Maximum = new decimal(new int[] {
             500,
             0,
@@ -415,11 +420,37 @@
             // label6
             // 
             this.label6.AutoSize = true;
-            this.label6.Location = new System.Drawing.Point(9, 122);
+            this.label6.Location = new System.Drawing.Point(9, 128);
             this.label6.Name = "label6";
             this.label6.Size = new System.Drawing.Size(230, 13);
             this.label6.TabIndex = 14;
             this.label6.Text = "Количество посадочных мест в транспорте:";
+            // 
+            // panel1
+            // 
+            this.panel1.Controls.Add(this.radioButtonBoarding);
+            this.panel1.Controls.Add(this.radioButtonLanding);
+            this.panel1.Location = new System.Drawing.Point(12, 20);
+            this.panel1.Name = "panel1";
+            this.panel1.Size = new System.Drawing.Size(89, 46);
+            this.panel1.TabIndex = 15;
+            // 
+            // panel2
+            // 
+            this.panel2.Controls.Add(this.radioButtonBus);
+            this.panel2.Controls.Add(this.radioButtonAirplane);
+            this.panel2.Location = new System.Drawing.Point(130, 20);
+            this.panel2.Name = "panel2";
+            this.panel2.Size = new System.Drawing.Size(87, 47);
+            this.panel2.TabIndex = 16;
+            // 
+            // listBoxActionResult
+            // 
+            this.listBoxActionResult.FormattingEnabled = true;
+            this.listBoxActionResult.Location = new System.Drawing.Point(6, 154);
+            this.listBoxActionResult.Name = "listBoxActionResult";
+            this.listBoxActionResult.Size = new System.Drawing.Size(309, 82);
+            this.listBoxActionResult.TabIndex = 17;
             // 
             // Form1
             // 
@@ -442,6 +473,10 @@
             this.groupBox4.ResumeLayout(false);
             this.groupBox4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numericUpDownSeatsCount)).EndInit();
+            this.panel1.ResumeLayout(false);
+            this.panel1.PerformLayout();
+            this.panel2.ResumeLayout(false);
+            this.panel2.PerformLayout();
             this.ResumeLayout(false);
 
         }
@@ -472,13 +507,16 @@
         private System.Windows.Forms.RadioButton radioButtonBus;
         private System.Windows.Forms.RadioButton radioButtonLanding;
         private System.Windows.Forms.RadioButton radioButtonBoarding;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button buttonDoAction;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.NumericUpDown numericUpDownSeatsCount;
         private System.Windows.Forms.MaskedTextBox maskedTextBoxFlightIdForTransport;
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.MaskedTextBox maskedTextBoxTransportID;
+        private System.Windows.Forms.Panel panel2;
+        private System.Windows.Forms.Panel panel1;
+        private System.Windows.Forms.ListBox listBoxActionResult;
     }
 }
 

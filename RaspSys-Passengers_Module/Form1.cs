@@ -20,6 +20,9 @@ namespace RaspSys_Passengers_Module
         {
             InitializeComponent();
             maskedTextBoxFlightID.ValidatingType = typeof(Guid);
+            maskedTextBoxFlightIdForTransport.ValidatingType = typeof(Guid);
+            maskedTextBoxTransportID.ValidatingType = typeof(Guid);
+            //.ValidatingType = typeof(Guid);
         }
 
         private void GeneratePassengers(int count)
@@ -160,6 +163,19 @@ namespace RaspSys_Passengers_Module
                 maskedTextBoxFlightIdForTransport.Enabled = false;
                 numericUpDownSeatsCount.Enabled = false;
             }
+        }
+
+        private void buttonDoAction_Click(object sender, EventArgs e)
+        {
+            var transportId = (Guid)maskedTextBoxTransportID.ValidateText();
+            var transportType = radioButtonAirplane.Checked ? TransportType.Airplane : TransportType.Bus;
+            var transport = new Transport(transportId, transportType, (int)numericUpDownSeatsCount.Value);
+            var actionType = radioButtonBoarding.Checked ? AirportAction.Boarding : AirportAction.Landing;
+            var flightId = (Guid)maskedTextBoxFlightIdForTransport.ValidateText();
+            var result = PassengersAPI.ChangeState(actionType, flightId, transport);
+            var passengers = PassengersAPI.GetPassengers(result.Passengers.ToArray());
+            listBoxActionResult.Items.Clear();
+            listBoxActionResult.Items.AddRange(passengers.ToArray());
         }
     }
 }

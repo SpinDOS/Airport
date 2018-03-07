@@ -111,13 +111,13 @@ def passengers_api():
 def boarding(transport):
     if transport in ['bus', 'airplane']:
         if request.method == 'POST':
-            transportId = request.json['transportID'] if 'transportID' in request.json else None
-            flightId = request.json['flightID'] if 'flightID' in request.json else None
+            transportId = request.json['transportID'].lower() if 'transportID' in request.json else None
+            flightId = request.json['flightID'].lower() if 'flightID' in request.json else None
             seats = request.json['seats'] if 'seats' in request.json else -1
             ids = request.json['ids'] if 'ids' in request.json else ([request.json['id']] if 'id' in request.json else [])
         else:
-            transportId = request.args['transportID'] if 'transportID' in request.args.keys() else None
-            flightId = request.args['flightID'] if 'flightID' in request.args.keys() else None
+            transportId = request.args['transportID'].lower() if 'transportID' in request.args.keys() else None
+            flightId = request.args['flightID'].lower() if 'flightID' in request.args.keys() else None
             seats = request.args['seats'] if 'seats' in request.args.keys() else -1
             ids = request.args['ids'].split(',') if 'ids' in request.args.keys() else ([request.args['id']] if 'id' in request.args.keys() else [])
             telelog(transportId)
@@ -141,7 +141,9 @@ def boardinglanding(action, transport, ids, tid = None, seats = -1, fid = None):
     if tid is not None:
         telelog('kek')
         if action == 'boarding':
-            ids = db.session.query(Passenger).filter(Passenger.flight == fid).filter(Passenger.transport == None)
+            telelog(fid)
+            needState = 'WaitForBus' if transport == 'bus' else 'WaitForAirplane'
+            ids = db.session.query(Passenger).filter(Passenger.state == needState).filter(Passenger.flight == fid).filter(Passenger.transport == None)
             if seats != -1:
                 ids = ids.limit(seats)
             ids = ids.all()
@@ -149,7 +151,8 @@ def boardinglanding(action, transport, ids, tid = None, seats = -1, fid = None):
                 pas.transport = tid
                 pas.state = 'InBus' if transport == 'bus' else 'InAirplane'
         else:
-            ids = db.session.query(Passenger).filter(Passenger.transport == tid).all()
+            needState = 'InBus' if transport == 'bus' else 'InAirplane'
+            ids = db.session.query(Passenger).filter(Passenger.state == needState).filter(Passenger.transport == tid).all()
             for pas in ids:
                 pas.transport = None
                 pas.state = 'WaitForAirplane' if transport == 'bus' else 'WaitForBus' # WaitForBus не точно. что делает пассажир после самолёта?
