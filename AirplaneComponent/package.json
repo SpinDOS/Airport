@@ -1,0 +1,14 @@
+{
+  "name": "airplane-component",
+  "version": "1.0.0",
+  "description": "Airplane component for MESI Airport",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Alexander Platonov",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^2.7.2"
+  }
+}
