@@ -1,7 +1,7 @@
 import { Guid } from "guid-typescript";
-import { IPassenger } from "./passenger";
-export interface IBaggage {
+import { Passenger } from "./passenger";
+export interface Baggage {
     id: Guid;
-    owner?: IPassenger;
     weight: number;
+    owner?: Passenger;
 }
