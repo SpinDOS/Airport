@@ -16,5 +16,7 @@ export interface Airplane {
   baggages: Baggage[],
 
   status: AirplaneStatus,
+
+  toString(): string;
 }
 
