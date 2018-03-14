@@ -1,23 +1,25 @@
-import { transformAndValidateSingle } from "../model/validation/validateWrapper";
 import { AirplaneCreateParams } from "../model/validation/airplaneCreateParams";
-import { findRandomModel, AirplaneModel } from "../model/airplaneModel";
+import { findRandomModel, IAirplaneModel } from "../model/airplaneModel";
 import { Guid } from "guid-typescript";
-import { Airplane } from "../model/airplane";
-import { Passenger } from "../model/passenger";
-import { Baggage } from "../model/baggage";
+import { IAirplane } from "../model/airplane";
+import { IPassenger } from "../model/passenger";
+import { IBaggage } from "../model/baggage";
 import * as logger from "../utils/logger";
+import * as airplanePool from "../airPlanePool";
 
 
 export function createAirplane(createParams: any): void {
-  let params =  transformAndValidateSingle(AirplaneCreateParams, createParams);
+  logger.log("Got MQ request to create airplane");
 
-  let airplaneModel = randomModel(params);
-  let fuel = randomFuel(airplaneModel.maxFuel);
+  let params: AirplaneCreateParams =  AirplaneCreateParams.validate(createParams);
 
-  let apiCallResult = getPassengersAndBaggageFromAPI(
-    params.landingFlight.passengersCount, params.landingFlight.serviceBaggageCount);
+  let airplaneModel: IAirplaneModel = randomModel(params);
+  let fuel: number = randomFuel(airplaneModel.maxFuel);
 
-  let airplane: Airplane =  {
+  let apiCallResult: { passengers: IPassenger[]; baggage: IBaggage[]; } =
+    getPassengersAndBaggageFromAPI(params.landingFlight.passengersCount, params.landingFlight.serviceBaggageCount);
+
+  let airplane: IAirplane =  {
     id: Guid.create(),
     model: airplaneModel,
 
@@ -30,28 +32,27 @@ export function createAirplane(createParams: any): void {
     baggages: apiCallResult.baggage,
 
     status: AirplaneStatus.WaitingForLanding,
+  };
 
-    toString: function() {
-      return `airplane ${this.model.name}(id: ${this.id.toString().toUpperCase()})`;
-    }
-  }
-
-  logger.log('Created new airplane: ' + airplane.toString());
+  airplanePool.set(airplane);
+  sendMQtoLand(airplane);
+  logger.log("Created new airplane: " + airplane.toString());
 }
 
-function randomModel(createParams: AirplaneCreateParams): AirplaneModel {
-  const baggagePerPassenger = 30;
+function randomModel(createParams: AirplaneCreateParams): IAirplaneModel {
+  const baggagePerPassenger: number = 30;
 
-  let passengersCount = Math.max(createParams.landingFlight.passengersCount, createParams.departureFlight.passengersCount);
-  let baggageCount = Math.max(
-    createParams.landingFlight.passengersCount * baggagePerPassenger + createParams.landingFlight.serviceBaggageCount, 
+  let passengersCount: number =
+    Math.max(createParams.landingFlight.passengersCount, createParams.departureFlight.passengersCount);
+  let baggageCount: number = Math.max(
+    createParams.landingFlight.passengersCount * baggagePerPassenger + createParams.landingFlight.serviceBaggageCount,
     createParams.departureFlight.passengersCount * baggagePerPassenger + createParams.departureFlight.serviceBaggageCount);
 
-  return findRandomModel(passengersCount, baggageCount);;
+  return findRandomModel(passengersCount, baggageCount);
 }
 
 function randomFuel(maxFuel: number): number {
-  let fuel = Math.random() * maxFuel;
+  let fuel: number = Math.random() * maxFuel;
   if (fuel > maxFuel * 0.75) {
     fuel /= 2;
   }
@@ -59,7 +60,12 @@ function randomFuel(maxFuel: number): number {
   return Math.max(fuel, maxFuel * 0.2);
 }
 
-function getPassengersAndBaggageFromAPI(passengersCount: number, serviceBaggageCount: number): 
-  { passengers: Passenger[], baggage: Baggage[] } {
+function getPassengersAndBaggageFromAPI(passengersCount: number, serviceBaggageCount: number):
+  { passengers: IPassenger[], baggage: IBaggage[] } {
+
     return null as any;
   }
+
+function sendMQtoLand(airplane: IAirplane): void {
+  //
+}
