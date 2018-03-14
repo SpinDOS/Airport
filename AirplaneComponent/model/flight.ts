@@ -1,6 +1,6 @@
-import { Guid } from 'guid-typescript'
+import { Guid } from "guid-typescript";
 
-export interface Flight{
-  id: Guid,
-  code?: string,
+export interface IFlight {
+  id: Guid;
+  code?: string;
 }
