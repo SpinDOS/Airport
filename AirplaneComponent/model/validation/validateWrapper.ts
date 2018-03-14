@@ -1,31 +1,41 @@
 import { ClassType } from "class-transformer/ClassTransformer";
 import { transformAndValidateSync } from "class-transformer-validator";
-import { ValidationError } from "class-validator";
+import { ValidationError as ClassValidatorError } from "class-validator";
+import { ValidationError } from "../../errors/validationError";
 
-export function transformAndValidate<T extends object>(classType: ClassType<T>, val: any): T | T[] {
+export type validateInput = string | object;
+export type validateArrayInput = string | object[];
+export type validateAnyInput = validateInput | validateArrayInput;
+
+export function transformAndValidateAny<T extends object>(classType: ClassType<T>, val: validateAnyInput): T | T[] {
+  if (!val) {
+    throw new ValidationError({ message: "No data" });
+  }
+
   try {
-    return transformAndValidateSync(classType, val);
-  }
-  catch(e) {
-    let err = e[0] as ValidationError;
-    throw new Error(`Invalid ${err.property} on ${err.target.constructor.name}: ${err.value}`);
+    return transformAndValidateSync(classType, val as string);
+  } catch(e) {
+    if (e instanceof Array && e[0] instanceof ClassValidatorError) {
+      throw new ValidationError({ errors: e });
+    } else {
+      throw e;
+    }
   }
 }
 
-export function transformAndValidateSingle<T extends object>(classType: ClassType<T>, val: any): T {
-  let result = transformAndValidate(classType, val);
-  if (Array.isArray(result)) {
-    throw new Error(`Expected single ${classType.name} but got array`);
-  }
-
-  return result as T;
-}
-
-export function transformAndValidateArray<T extends object>(classType: ClassType<T>, val: any): T[] {
-  let result = transformAndValidate(classType, val);
+export function transformAndValidateSingle<T extends object>(classType: ClassType<T>, val: validateInput): T {
+  let result: T | T[] = transformAndValidateAny(classType, val);
   if (!Array.isArray(result)) {
-    throw new Error(`Expected array of ${classType.name} but got single value`);
+    return result as T;
   }
 
-  return result as T[];
+  throw new ValidationError({ message: `Expected single ${classType.name} but got array` });
+}
+
+export function transformAndValidateArray<T extends object>(classType: ClassType<T>, val: validateArrayInput): T[] {
+  let result: T | T[] = transformAndValidateAny(classType, val);
+  if (Array.isArray(result)) {
+    return result as T[];
+  }
+  throw new ValidationError({ message: `Expected array of ${classType.name} but got single value` });
 }

@@ -1,6 +1,7 @@
 import { Type } from "class-transformer";
 import { ValidateNested, IsPositive, IsNumber, IsInt } from "class-validator";
 import { Flight } from "./Flight";
+import { transformAndValidateSingle, validateInput } from "./validateWrapper";
 
 export class FlightInfo extends Flight {
 
@@ -22,4 +23,8 @@ export class AirplaneCreateParams {
   @Type(() => FlightInfo)
   @ValidateNested()
   departureFlight!: FlightInfo;
+
+  static validate(airplaneCreateParams: validateInput): AirplaneCreateParams {
+    return transformAndValidateSingle(AirplaneCreateParams, airplaneCreateParams);
+  }
 }

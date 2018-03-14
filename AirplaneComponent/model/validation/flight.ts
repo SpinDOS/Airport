@@ -1,10 +1,11 @@
 import { IsOptional, IsUUID, IsString } from "class-validator";
-import { Flight as RealFlight } from "../flight";
-import { Guid } from "guid-typescript"
+import { IFlight as RealFlight } from "../flight";
+import { Guid } from "guid-typescript";
+import { transformAndValidateSingle, validateInput } from "./validateWrapper";
 
 export class Flight {
 
-  @IsUUID()
+  @IsUUID("4")
   id!: string;
 
   @IsOptional()
@@ -15,7 +16,10 @@ export class Flight {
     return {
       id: Guid.parse(this.id),
       code: this.code,
-    }
+    };
   }
 
+  static validate(flight: validateInput): Flight {
+    return transformAndValidateSingle(Flight, flight);
+  }
 }
