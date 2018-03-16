@@ -4,8 +4,8 @@ import requests
 import time
 from uuid import uuid4
 
-from .utils import log_message
-from .config import (
+from BaggageComponent.rabbit.demo.utils import log_message
+from BaggageComponent.rabbit.demo.config import (
     AIRPLANE_API,
     BAGGAGE_API,
     BAGGAGE_QUEUE,
@@ -47,7 +47,7 @@ class BaggageCar:
                                    body=json.dumps(init_message))
 
         queue = self.channel.queue_declare(exclusive=True)
-        self.callback_queue = queue.method.name
+        self.callback_queue = queue.method.queue
         self.channel.basic_consume(self.get_und_response, queue=self.callback_queue, no_ack=True)
         self.channel.basic_qos(prefetch_count=1)
 
@@ -59,7 +59,7 @@ class BaggageCar:
             self.und_response = json.loads(body.decode())
 
     def require_route(self, location_to):
-        log_message(f'require route from {location_from} to {location_to}')
+        log_message(f'require route from {self.location} to {location_to}')
 
         params = {
             "service": "baggage",
@@ -109,7 +109,6 @@ class BaggageCar:
         elif action == 'unload':
             self.unload_airplane(flight_id, parking_id, gate_id)
         else:
-            log_message('Error. Unknown action')
             raise Exception('Error. Unknown action')
 
         # notify UND
@@ -117,6 +116,7 @@ class BaggageCar:
             "service": "baggage",
             "request": "maintain",
             "flightid": flight_id,
+            "action": action,
             "status": "done"
         }
         self.channel.basic_publish(exchange=UND_EXCHANGE,
@@ -165,9 +165,8 @@ class BaggageCar:
     def load_airplane(self, flight_id, parking_id, gate_id):
         log_message(f'Start load airplane with {flight_id}')
 
-        content = requests.get(f'{BAGGAGE_API}/api/baggage/{flight_id}?length=yes').content
-        response = json.loads(content.decode())
-        log_message(f'Got {response["baggage_count"]} from baggage component')
+        content = json.loads(requests.get(f'{BAGGAGE_API}/api/baggage/{flight_id}?length=yes').content.decode())
+        log_message(f'Got {content["baggage_count"]} from baggage component')
 
         baggage_count = content['baggage_count']
         if baggage_count == 0:
