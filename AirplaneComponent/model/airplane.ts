@@ -15,6 +15,9 @@ export interface IAirplane {
   passengers: IPassenger[];
   baggages: IBaggage[];
 
-  status: AirplaneStatus;
+  status: {
+    type: AirplaneStatus;
+    additionalInfo?: any;
+  };
 }
 
