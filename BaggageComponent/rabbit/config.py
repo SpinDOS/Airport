@@ -1,0 +1,7 @@
+AIRPLANE_API = 'Sasha api'
+BAGGAGE_API = 'Dima api'
+BAGGAGE_QUEUE = 'baggage'
+PASSENGER_API = 'Anton api'
+VISUALIZER_QUEUE = ''
+UND_ROUTING_KEY = 'gtc.gate'
+UND_EXCHANGE = 'amqp.gtc'
