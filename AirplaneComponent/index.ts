@@ -1,7 +1,6 @@
 import "reflect-metadata";
-import * as logger from "./utils/logger";
-import * as mqListen from "./mq/mqListen";
-import { Flight } from "./model/validation/Flight";
+import { start as startMQListen} from "./mq/mqListen";
+import { start as startHttpServer } from "./webapi/httpServer";
 
-mqListen.start();
-logger.log("Working");
+startHttpServer();
+startMQListen();
