@@ -4,6 +4,7 @@ import { IAirplaneModel } from "../model/airplaneModel";
 import { Guid } from "guid-typescript";
 import { IBaggage } from "../model/baggage";
 import { IPassenger } from "../model/passenger";
+import { ValidationError } from "../errors/validationError";
 
 export function guid(x: Guid): string {
   return x.toString().toUpperCase();
@@ -39,4 +40,23 @@ export function baggage(x: IBaggage): string {
   } else {
     return `Passenger (${guid(x.owner.id)})'s baggage`;
   }
+}
+
+export function error(err: any, sourceText?: string): string {
+  const unexpectedError: string = "Unexpected error occured";
+
+  if (!err) {
+    return unexpectedError;
+  }
+
+  if (err instanceof ValidationError) {
+    err.sourceText = sourceText;
+  }
+
+  let str: string = err.stack || err.toString();
+  if (str === "Error") {
+    str = unexpectedError;
+  }
+
+  return str;
 }
