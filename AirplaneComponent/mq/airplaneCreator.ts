@@ -6,6 +6,8 @@ import { IPassenger } from "../model/passenger";
 import { IBaggage } from "../model/baggage";
 import * as logger from "../utils/logger";
 import * as airplanePool from "../airPlanePool";
+import * as mq from "../mq/mq";
+import { Message } from "amqp-ts";
 
 
 export function createAirplane(createParams: any): void {
@@ -31,7 +33,9 @@ export function createAirplane(createParams: any): void {
     passengers: apiCallResult.passengers,
     baggages: apiCallResult.baggage,
 
-    status: AirplaneStatus.WaitingForLanding,
+    status: {
+      type: AirplaneStatus.WaitingForLanding,
+    },
   };
 
   airplanePool.set(airplane);
@@ -67,5 +71,5 @@ function getPassengersAndBaggageFromAPI(passengersCount: number, serviceBaggageC
   }
 
 function sendMQtoLand(airplane: IAirplane): void {
-  //
+  mq.FollowMeMQ.send(new Message(airplane));
 }

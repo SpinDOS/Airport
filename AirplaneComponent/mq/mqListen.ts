@@ -1,9 +1,9 @@
 import * as Amqp from "amqp-ts";
 import * as logger from "../utils/logger";
+import { myQueue } from "./mq";
 import { MQMessage } from "../model/validation/mqMessage";
 import { ValidationError } from "../errors/validationError";
-import { LogicalError } from "../errors/logicalError";
-import { myQueue } from "../mq";
+import * as formatter from "../utils/modelFormatter";
 import { createAirplane } from "./airplaneCreator";
 
 export function start(): void {
@@ -18,7 +18,7 @@ function consumer(message: Amqp.Message): void {
     let mqMes: MQMessage = MQMessage.validate(str);
     handleReq(mqMes);
   } catch(e) {
-    handleError(e, str);
+    logger.error(formatter.error(e, str));
   }
 
   message.ack();
@@ -30,21 +30,6 @@ function decodeContent(message: Amqp.Message): string {
   } catch {
     throw new ValidationError({ message: "Invalid MQ message encoding" });
   }
-}
-
-function handleError(error: any, sourceText?: string): void {
-  const unexpectedError: string = "Unexpected error occured";
-
-  if (!error) {
-    logger.error(unexpectedError);
-    return;
-  }
-
-  if (error instanceof ValidationError) {
-    error.sourceText = sourceText;
-  }
-
-  logger.error(error.toString() || unexpectedError);
 }
 
 function handleReq(mqMessage: MQMessage): void {
