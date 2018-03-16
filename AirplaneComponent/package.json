@@ -8,7 +8,12 @@
   },
   "author": "Alexander Platonov",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "@types/amqplib": "^0.5.7",
+    "@types/bluebird": "^3.5.20",
+    "amqp-ts": "^1.4.0",
+    "bluebird": "^3.5.1"
+  },
   "devDependencies": {
     "guid-typescript": "^1.0.7",
     "typescript": "^2.7.2"
