@@ -6,44 +6,74 @@
 
 #include <cstdio>
 #include <cstring>
-/*
- * method call when new message consume
- * in rabbit message queue
- * \return 0 if "OK"
-*/
-qint32 GtcLogic::process(const QJsonDocument &doc)
+
+//qint32 process(const QJsonDocument &doc)
+//	size_t body_len = msg->body.len;
+//	char *body = static_cast<char *>(msg->body.bytes);
+
+//	size_t corrid_len = msg->properties.correlation_id.len;
+//	char *corrid = static_cast<char *>(msg->properties.correlation_id.bytes);
+
+//	size_t repl_to_len = msg->properties.reply_to.len;
+//	char *repl_to = static_cast<char *>(msg->properties.reply_to.bytes);
+
+//	fwrite(body, sizeof(char), body_len, stdout);
+//	printf("\n");
+
+//	fwrite(corrid, sizeof(char), corrid_len, stdout);
+//	printf("\n");
+
+//	fwrite(repl_to, sizeof(char), repl_to_len, stdout);
+//	printf("\n");
+
+//	char q[256] = {0};
+//	strncpy(q, repl_to, repl_to_len);
+//	int r = amqp_basic_publish(_connect, 1, amqp_empty_bytes, amqp_cstring_bytes(q), 0, 0, &msg->properties, msg->body);
+
+//	printf("%s %d\n", q, r);
+//	return 0;
+//}
+
+GtcLogic::ProcessStatus
+GtcLogic::processMovementRequest(const QJsonDocument &doc, amqp_basic_properties_t *prop)
 {
-	size_t body_len = msg->body.len;
-	char *body = static_cast<char *>(msg->body.bytes);
+	auto service = doc["service"];
+	auto from = doc["from"];
+	auto to = doc["to"];
 
-	size_t corrid_len = msg->properties.correlation_id.len;
-	char *corrid = static_cast<char *>(msg->properties.correlation_id.bytes);
+	if (service == QJsonValue::Undefined || from == QJsonValue::Undefined || to == QJsonValue::Undefined) {
+		qWarning() << "[ERROR] Bad movement message format";
+		return ProcessStatus::Nack;
+	}
 
-	size_t repl_to_len = msg->properties.reply_to.len;
-	char *repl_to = static_cast<char *>(msg->properties.reply_to.bytes);
+	auto serviceVal = service.toString();
+	auto fromVal = from.toString();
+	auto toVal = to.toString();
 
-	fwrite(body, sizeof(char), body_len, stdout);
-	printf("\n");
+	if (serviceVal == Q_NULLPTR || fromVal == Q_NULLPTR || toVal == Q_NULLPTR) {
+		qWarning() << "[ERROR] Bad json fields type";
+		return ProcessStatus::Nack;
+	}
 
-	fwrite(corrid, sizeof(char), corrid_len, stdout);
-	printf("\n");
+	auto location = _controller.nextLocation(fromVal, toVal);
+	if (location.length() == 0)
+		return ProcessStatus::Retry;
 
-	fwrite(repl_to, sizeof(char), repl_to_len, stdout);
-	printf("\n");
-
-	char q[256] = {0};
-	strncpy(q, repl_to, repl_to_len);
-	int r = amqp_basic_publish(_connect, 1, amqp_empty_bytes, amqp_cstring_bytes(q), 0, 0, &msg->properties, msg->body);
-
-	printf("%s %d\n", q, r);
-	return 0;
+	//TODO: postMovementRequest
 }
 
-/*
- * check _connection field on error
- * set _status field
- * \return 0 if OK
-*/
+GtcLogic::ProcessStatus
+GtcLogic::processAcceptRequest(const QJsonDocument &doc)
+{
+
+}
+
+GtcLogic::ProcessStatus
+GtcLogic::processMaintainRequest(const QJsonDocument &doc)
+{
+
+}
+
 qint32 GtcLogic::checkConnection()
 {
 	_status = amqp_get_rpc_reply(_connect);
@@ -55,11 +85,6 @@ qint32 GtcLogic::checkConnection()
 	return 0;
 }
 
-/*
- * method allocate resorces
- * for amqp message exchange
- * \return 0 if "OK" else GtcLogic reopening
-*/
 qint32 GtcLogic::init(const QString &configPath)
 {
 	qDebug() << "[INFO] init Gtc Logic";
@@ -96,12 +121,6 @@ qint32 GtcLogic::init(const QString &configPath)
 	return 0;
 }
 
-
-/*
- * method check config json file
- * and assign credits value
- * \return 0 if OK
-*/
 qint32 GtcLogic::readJsonConfig(const QJsonObject &credits)
 {
 	if (credits["hostname"].isUndefined() || credits["vhost"].isUndefined() ||
@@ -134,11 +153,6 @@ qint32 GtcLogic::readJsonConfig(const QJsonObject &credits)
 	return 0;
 }
 
-
-/*
- * init new amqp connection
- * \return 0 if OK
-*/
 qint32 GtcLogic::initAmqpConnection()
 {
 	_connect = amqp_new_connection();
@@ -150,12 +164,6 @@ qint32 GtcLogic::initAmqpConnection()
 	return 0;
 }
 
-/*
- * open connection with remote amqp host
- * try login, declaring and binding queue
- * declaring exchange type and creating basic concumer
- * \return 0 if "OK" else GtcLogic reopening
-*/
 qint32 GtcLogic::open()
 {
 	qDebug() << "[INFO] open gtc logic";
@@ -187,11 +195,6 @@ qint32 GtcLogic::open()
 	return 0;
 }
 
-
-/*
- * allocate and open amqp tcp socket
- * \return 0 if OK
-*/
 qint32 GtcLogic::openTcpSocket()
 {
 	const auto &host   = _hostname.toStdString();
@@ -210,12 +213,6 @@ qint32 GtcLogic::openTcpSocket()
 	return 0;
 }
 
-/*
- * method declare exchange, exchange type
- * declare queue and bind
- * create basic consumer
- * \return 0 if OK
-*/
 qint32 GtcLogic::openMsgQueueStream()
 {
 	const auto &exch     = _exchange.toStdString();
@@ -256,11 +253,6 @@ qint32 GtcLogic::openMsgQueueStream()
 	return 0;
 }
 
-/*
- * blocking method call
- * waiting new message from vehicle
- * \return 0 if "OK"
-*/
 qint32 GtcLogic::process()
 {
 	amqp_envelope_t envelope;
@@ -284,30 +276,50 @@ qint32 GtcLogic::process()
 	char *bytes = static_cast<char *>(envelope.message.body.bytes);
 	QByteArray jsonMsg(bytes, envelope.message.body.len);
 	QJsonDocument doc = QJsonDocument::fromJson(jsonMsg);
+	auto requestValue = getRequest(doc);
 
-#ifdef Q_TRACE
-	qDebug() << "[TRACE] got message size: " << envelope.message.body.len;
-#endif
+	ProcessStatus st;
+	if (requestValue == MovementRequest)
+		st = processMovementRequest(doc, &envelope.message.properties);
+	else if (requestValue == AcceptRequest)
+		st = processAcceptRequest(doc);
+	else if (requestValue == MaintainRequest)
+		st = processMaintainRequest(doc);
+	else
+		st = ProcessStatus::Nack;
 
-	switch (process(doc)) {
-	case EAGAIN:
-
+	switch (st) {
+	case ProcessStatus::Ack:
+		qDebug() << "[TRACE] ack " << requestValue << "message";
+		amqp_basic_ack(_connect, 1, envelope.delivery_tag, 0);
 		break;
-	case EINVAL:
-
-	default:
+	case ProcessStatus::Retry:
+		qDebug() << "[TRACE] requeue" << requestValue << "message";
+		amqp_basic_nack(_connect, 1, envelope.delivery_tag, 0, true);
+		break;
+	case ProcessStatus::Nack:
+		qWarning() << "[WARNING] Unknow request" << requestValue;
+		amqp_basic_nack(_connect, 1, envelope.delivery_tag, 0, false);
+		break;
+	case ProcessStatus::Error:
+		qWarning() << "[ERROR] Fail to process" << requestValue << "message";
+		amqp_basic_nack(_connect, 1, envelope.delivery_tag, 0, true);
 		break;
 	}
-
-	amqp_basic_ack(_connect, 1, envelope.delivery_tag, 0);
 	amqp_destroy_envelope(&envelope);
 
-	return 0;
+	return (st != ProcessStatus::Error) ? 0 : EAGAIN;
 }
 
-/*
- * closing and free all allocated amqp resources
-*/
+QString GtcLogic::getRequest(const QJsonDocument &doc)
+{
+	auto request = doc["request"];
+	if (request == QJsonValue::Undefined)
+		return Q_NULLPTR;
+
+	return request.toString();
+}
+
 void GtcLogic::close()
 {
 	qDebug() << "[INFO] close gtc logic";
@@ -318,10 +330,6 @@ void GtcLogic::close()
 	amqp_connection_close(_connect, AMQP_REPLY_SUCCESS);
 }
 
-
-/*
- * destroy amqp connection
-*/
 void GtcLogic::destroy()
 {
 	qDebug() << "[INFO] destroy gtc logic";

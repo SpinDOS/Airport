@@ -19,7 +19,10 @@ extern "C" {
 class TrafficController : public QObject {
 
 public:
-	int relocate();
+	QString nextLocation(const QString &from, const QString &to)
+	{
+		return QString();
+	}
 };
 
 

@@ -23,9 +23,21 @@ extern "C" {
 class GtcLogic : public QObject {
 	Q_OBJECT
 
-	TrafficController controller;
+	enum class ProcessStatus {
+		Ack,
+		Nack,
+		Retry,
+		Error
+	};
+
+	TrafficController _controller;
 
 	QHash<qint32, Airplain> _airplains;
+
+	const QString MovementRequest = "movement";
+	const QString MaintainRequest = "maintain";
+	const QString AcceptRequest   = "accept";
+	const QString ServiceRequest  = "service";
 
 	amqp_socket_t *_socket = NULL;
 	amqp_connection_state_t _connect = NULL;
@@ -39,8 +51,6 @@ class GtcLogic : public QObject {
 	QString _bindingKey;
 	QString _consumerName;
 
-	qint32 process(const QJsonDocument &doc);
-
 	qint32 readJsonConfig(const QJsonObject &credits);
 	qint32 initAmqpConnection();
 
@@ -48,6 +58,12 @@ class GtcLogic : public QObject {
 	qint32 openMsgQueueStream();
 
 	qint32 checkConnection();
+
+	QString getRequest(const QJsonDocument &doc);
+
+	ProcessStatus processMovementRequest(const QJsonDocument &doc, amqp_basic_properties_t *prop);
+	ProcessStatus processAcceptRequest(const QJsonDocument &doc);
+	ProcessStatus processMaintainRequest(const QJsonDocument &doc);
 
 public:
 
