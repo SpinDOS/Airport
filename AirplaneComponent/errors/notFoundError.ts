@@ -1,9 +1,15 @@
 export class NotFoundError extends Error {
-  constructor(private element?: string, message?: string) {
-    super(message || `Not found: ${element}`);
+  constructor(public element?: string, message?: string) {
+    super(message);
   }
 
   toString(): string {
-    return this.message;
+    if (this.message) {
+      return this.message;
+    } else if (this.element) {
+      return `Not found: ${this.element}`;
+    } else {
+      return super.toString();
+    }
   }
 }
