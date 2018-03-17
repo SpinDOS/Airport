@@ -26,7 +26,7 @@ def getAirCraftIf(flightId):
     return str(uuid.uuid4())
 
 
-def sendMovement(carId, fromId, toId):
+def sendMovement(carId, fromId, toId, status):
     connection = pika.BlockingConnection(pika.URLParameters(
         'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
     channel = connection.channel()
@@ -37,7 +37,8 @@ def sendMovement(carId, fromId, toId):
         "service":"fuel",
         "request":"movement",
         "from":f"{fromId}",
-        "to":f"{toId}"
+        "to":f"{toId}",
+        "status":f"{status}"
     })
     channel.basic_publish(exchange='',
                           routing_key='gtc.gate',
@@ -88,7 +89,7 @@ def getAnswer(ch, method, properties, body):
             carId =  properties['correlation_id']
             for car in carList:
                 if car.getCarId == carId:
-                    car.setTempLocation(message['from'])
+                    car.setTempLocation(message['to'])
                     break
 
         if message['request'] == 'answer':
@@ -192,7 +193,7 @@ class Refueler:
         while self._currentLocation != self._finishLocation:
             with self.__lockFinish:
                 with self.__lockTemp:
-                    sendMovement(self.uuid, self._currentLocation, self._finishLocation)
+                    sendMovement(self.uuid, self._currentLocation, self._finishLocation, "need")
 
             while self._tempLocation == self._currentLocation:
                 pass
@@ -203,12 +204,13 @@ class Refueler:
                 progress += 0.1
                 time.sleep(5)
 
+            sendMovement(self.uuid, self._currentLocation, self._tempLocation, "done")
             self._currentLocation = self._tempLocation
 
-    def doFluer(self, flightid, parkingid):
+    def doFluer(self, flightid, parkingid, aircraftid):
         self.__done = False
         self._finishLocation = parkingid
-        self._aircraftId = getAirCraftIf(flightid)
+        self._aircraftId = aircraftid
         volume = getFlueVolum(self._aircraftId)
         time.sleep(5)
 
@@ -259,9 +261,9 @@ class ThreadRefueler(threading.Thread):
             if message['request'] != 'service':
                 print('Неопознаное сообщение: %r', {message['request']})
 
-            self.setFinishLocation(message['parkingid'])
+            self.setFinishLocation(message['gate_id'])
 
-            self.refueler.doFluer(flightid=message['flightid'], parkingid=message['parkingid'])
+            self.refueler.doFluer(flightid=message['flight_id'], parkingid=message['gate_id'], aircraftid=message['aircraft_id'])
         except :
             print("Не найден параметр")
         finally:
