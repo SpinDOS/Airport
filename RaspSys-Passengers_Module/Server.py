@@ -2,6 +2,7 @@ from sql import db, getApp
 import uuid
 import random
 import datetime
+import requests
 from flask import request, jsonify
 app = getApp()
 from telelog import telelog
@@ -16,7 +17,7 @@ class Passenger(db.Model):
     birthdate = db.Column(db.Date)
     luggage = db.Column(db.String(36))
     flight = db.Column(db.String(36))
-    state = db.Column(db.Enum('Unknown', 'WaitForBus', 'InBus', 'WaitForAirplane', 'InAirplane'))
+    state = db.Column(db.Enum('Unknown', 'WaitForBus', 'InBus', 'WaitForAirplane', 'InAirplane', 'WaitForLuggage', 'Left')) # InBus => InBusToAirport & InBusToAirplane; WaitForBus => WaitForBusToAirport & WaitForBusToAirplane ?
     transport = db.Column(db.String(36)) # ID транспорта, в котором находиться пассажир
 
     def serialize(self, extended = False):
@@ -39,10 +40,104 @@ def random_date(start, end):
         seconds=random.randint(0, int((end - start).total_seconds())),
     )
 
+service_luggage_in_system = []
+@app.route('/generate_flight', methods=['GET', 'POST']) # args: flightID, pas, lug, serlug, arriving, extended, transportID - id рейса, количество пассажиров, количество багажа, количество служебного багажа, флаг "прилетающие", если не указан - прибывшие в аэропорт чтоб улететь, расширенная инфа
+def gen_flight():
+    if 'flightID' not in request.args.keys():
+        return '', 400
+
+    pas = request.args.get('pas', default = 20, type = int)
+    lug = request.args.get('lug', default = random.randint(12,17), type = int)
+    serlug = request.args.get('serlug', default = random.randint(0,4) , type = int)
+    arriving = request.args.get('arriving', default = False , type = bool)
+    flight = request.args.get('flightID')#, type = uuid)
+
+    if (pas < 0 or pas > 100 or serlug < 0 or serlug > 50 or lug < 0 or pas < lug):
+        return '', 400
+
+    transportID = None
+    if (arriving):
+        if 'transportID' not in request.args.keys():
+            return '', 400
+        transportID = request.args.get('transportID')
+
+    j = 0
+    passengers = []
+    all_luggage = []
+    for i in range(pas):
+        gender = random.choice(['male', 'female'])
+        name = random.choice(malenameslist if gender=='male' else femalenameslist)
+        surname = random.choice(surnameslist) if gender=='male' else (random.choice(surnameslist)+'a')
+        id = uuid.uuid4()
+        luggage = uuid.uuid4() if j < lug else None
+        if (luggage != None):
+            all_luggage.append(str(luggage))
+        patronymic = random.choice(malenameslist)
+        if patronymic[-1] in 'йь':
+            patronymic = patronymic[:-1] + ('евич' if gender=='male' else 'евна')
+        elif patronymic[-1] == 'а':
+            patronymic = patronymic[:-1] + ('ович' if gender=='male' else 'евна')
+        else:
+            patronymic = patronymic + ('ович' if gender=='male' else 'овна')
+        date_from = datetime.datetime(1940,1,1) # max = 75 лет
+        date_to = datetime.datetime(2000,1,1) # min = 18 лет
+        birthdate = random_date(date_from, date_to)
+        transport = transportID
+        place = 'InAirplane' if arriving else 'WaitForBus'
+        new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place, transport = transport)
+        passengers.append(new_passenger)
+        j = j + 1
+        db.session.add(new_passenger)
+    db.session.commit()
+
+    service_luggage = []
+    for i in range(serlug):
+        newlug = uuid.uuid4()
+        service_luggage.append(newlug)
+        service_luggage_in_system.append(newlug)
+        all_luggage.append(str(newlug))
+
+    serialized_passengers = [p.serialize('extended' in request.args.keys()) for p in passengers]
+
+    if (not arriving):
+        data = {'flight_id': flight, 'registration': 'kek', 'baggage_ids': all_luggage}
+        telelog(data)
+        res = requests.post('http://dmitryshepelev15.pythonanywhere.com/api/baggage', json=data)
+        telelog(res.content)
+
+
+    return jsonify({'passengers_count': pas, 'luggage_count': {'passengers': lug, 'service': serlug}, 'passengers': serialized_passengers, 'service_luggage': service_luggage})
+
+
+waiting_luggage = set([])
+@app.route('/luggage_notify', methods=['POST'])
+def notify_luggage():
+    global waiting_luggage
+    global service_luggage_in_system
+
+    if 'luggage' not in request.json:
+        return '', 400
+
+    received = [x for x in request.json['luggage']]
+    waiting_luggage.append(received)
+    waiting_passengers = db.session.query(Passenger).filter(Passenger.state == 'WaitForLuggage').all()
+    waiting_passengers_bags = set([x.luggage for x in waiting_passengers])
+
+    recevied_bags = (waiting_passengers_bags | set(service_luggage_in_system)) & waiting_luggage # багаж и пассажиры, которые нашли друг друга
+    passengers_recevied_bags = list(filter(lambda x: x.luggage in recevied_bags, waiting_passengers)) # пассажиры, багаж которых прибыл
+    waiting_luggage = [n for n in waiting_luggage if n not in recevied_bags] # удаляем из waiting luggage
+    service_luggage_in_system = [n for n in service_luggage_in_system if n not in recevied_bags]
+
+    # удалить пассажиров, которые с багажом
+    db.session.query(Passenger).filter_by(Passenger.in_(passengers_recevied_bags)).delete()
+    db.session.commit()
+    # сообщить диману о том что багаж забрали
+    requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage', json={'ids': recevied_bags})
+    return '', 200
+
 @app.route('/passengers', methods=['POST','GET','DELETE'])
 def passengers_api():
     if request.method == 'GET':
-        telelog(2)
         try:
             if 'flight' in request.args.keys():
                 fid = request.args['flight']
@@ -58,6 +153,10 @@ def passengers_api():
                 res = db.session.query(Passenger).filter(Passenger.Id.in_(ids)).all()
             else:
                 res = db.session.query(Passenger).all()
+
+            if 'status' in request.args.keys():
+                filtered_state = request.args['status']
+                res = list(filter(lambda x: x.state == filtered_state, res))
             return jsonify([p.serialize('extended' in request.args.keys()) for p in res])
         except:
             return 400 # Invalid UUIDs

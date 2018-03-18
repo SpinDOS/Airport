@@ -1,33 +1,39 @@
 #ifndef SERVICE_H
 #define SERVICE_H
 
+#include <QObject>
 
 struct Airplain {
-	enum class AirplainState {
+	enum class State {
 		Unloading,
 		Fueling,
-		Landing,
+		Loading,
 		Departure,
 		Away
 	};
 
-	AirplainState state = AirplainState::Unloading;
-	int parkingId = -1;
+	bool isBusUnload = false, isBaggageUnload = false;
+	bool isBusLoad = false, isBaggageLoad = false;
 
-	AirplainState nextState()
+	State state = State::Unloading;
+	QString parkingId;
+
+	State nextState()
 	{
 		switch (state) {
-		case AirplainState::Unloading:
-			state = AirplainState::Fueling;
+		case State::Unloading:
+			if (isBusUnload && isBaggageUnload)
+				state = State::Fueling;
 			break;
-		case AirplainState::Fueling:
-			state = AirplainState::Landing;
+		case State::Fueling:
+			state = State::Loading;
 			break;
-		case AirplainState::Landing:
-			state = AirplainState::Departure;
+		case State::Loading:
+			if (isBusLoad && isBaggageLoad)
+				state = State::Departure;
 			break;
-		case AirplainState::Departure:
-			state = AirplainState::Away;
+		case State::Departure:
+			state = State::Away;
 			break;
 		default:
 			break;
