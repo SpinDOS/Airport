@@ -5,17 +5,18 @@ export interface IAirplaneModel {
   readonly name: string;
   readonly maxFuel: number;
   readonly maxPassengersCount: number;
-  readonly maxBaggageWeight: number;
+  readonly maxBaggageCount: number;
 }
 
-export function findRandomModel(passengersCount: number, baggageWeight: number): IAirplaneModel {
+export function generateRandomModel(passengersCount: number, baggageCount: number): IAirplaneModel {
   let matching: IAirplaneModel[] = allModels.filter(
     model => model.maxPassengersCount >= passengersCount &&
-    model.maxBaggageWeight >= baggageWeight);
+             model.maxBaggageCount >= baggageCount);
 
   if (matching.length === 0) {
-    throw new LogicalError(`Can not find model that can carry ${passengersCount} passengers and ${baggageWeight} kg of baggage`);
+    throw new LogicalError(`Can not find model to can carry ${passengersCount} passengers and ${baggageCount} baggage`);
   }
+
   return matching[random0toMax(matching.length)];
 }
 
@@ -23,7 +24,7 @@ export let allModels: IAirplaneModel[] = [
   {
     name: "Boeing 747",
     maxFuel: 100,
-    maxPassengersCount: 1000,
-    maxBaggageWeight: 1000,
+    maxPassengersCount: 10000,
+    maxBaggageCount: 10000,
   }
 ];

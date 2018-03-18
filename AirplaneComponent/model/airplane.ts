@@ -12,12 +12,17 @@ export interface IAirplane {
   readonly departureFlight: IFlight;
 
   fuel: number;
-  passengers: IPassenger[];
-  baggages: IBaggage[];
+  readonly passengers: IPassenger[];
+  readonly baggages: IBaggage[];
 
-  status: {
+  readonly status: {
     type: AirplaneStatus;
-    additionalInfo?: any;
+    additionalInfo: {
+      parkingId?: string,
+      baggageCars?: string[],
+      followMeCarId?: string,
+      stripId?: string,
+     };
   };
 }
 
