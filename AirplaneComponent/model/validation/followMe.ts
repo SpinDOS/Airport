@@ -1,24 +1,26 @@
-import { IsString, IsNotEmpty } from "class-validator";
-import { validateInput, transformAndValidateSingle } from "./validateWrapper";
+import { ValidationError } from "../../errors/validationError";
+import { isNotEmptyString } from "../../utils/validation";
 
-export class FollowMeStart {
-
-  @IsString()
-  @IsNotEmpty()
-  carId!: string;
-
-  static validate(followMeStart: validateInput): FollowMeStart {
-    return transformAndValidateSingle(FollowMeStart, followMeStart);
+export function validateFollowMeStart(followMeStart: any): { carId: string } {
+  if (!followMeStart || !isNotEmptyString(followMeStart.carId)) {
+    throw new ValidationError("Expected id of Follow-Me car");
   }
+
+  return { carId: followMeStart.carId };
 }
 
-export class FollowMeEnd {
-
-  @IsString()
-  @IsNotEmpty()
-  parkingId!: string;
-
-  static validate(followMeEnd: validateInput): FollowMeEnd {
-    return transformAndValidateSingle(FollowMeEnd, followMeEnd);
+export function validateFollowMeEndToParking(followMeEnd: any): { parkingId: string } {
+  if (!followMeEnd || !isNotEmptyString(followMeEnd.parkingId)) {
+    throw new ValidationError("Expected id of parking after end of work of Follow-Me car");
   }
+
+  return { parkingId: followMeEnd.parkingId };
+}
+
+export function validateFollowMeEndToStrip(followMeEnd: any): { stripId: string } {
+  if (!followMeEnd || !isNotEmptyString(followMeEnd.stripId)) {
+    throw new ValidationError("Expected id of strip after end of work of Follow-Me car");
+  }
+
+  return { stripId: followMeEnd.stripId };
 }

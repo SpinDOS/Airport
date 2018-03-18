@@ -1,15 +1,24 @@
-import { IsString, IsNotEmpty } from "class-validator";
-import { transformAndValidateSingle, validateInput } from "./validateWrapper";
+import { ValidationError } from "../../errors/validationError";
+import { isNotEmptyString } from "../../utils/validation";
 
-export class MQMessage {
-
-  @IsString()
-  @IsNotEmpty()
-  type!: string;
-
+export interface IMQMessage {
+  type: string;
+  replyTo?: string;
+  correlationId?: string;
   value: any;
+}
 
-  static validate(mqMessage: validateInput): MQMessage {
-    return transformAndValidateSingle(MQMessage, mqMessage);
+export function validateMQMessage(mqMessage: any): IMQMessage {
+  if (!mqMessage) {
+    throw new ValidationError("MQ message is empty");
   }
+
+  if (!isNotEmptyString(mqMessage.type)) {
+    throw new ValidationError("Invalid type of MQ message's type");
+  }
+
+  return {
+    type: mqMessage.type,
+    value: mqMessage.value,
+  };
 }
