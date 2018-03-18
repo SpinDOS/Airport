@@ -20,7 +20,7 @@ export function get(id: Guid): IAirplane {
     return result;
   }
 
-  throw new NotFoundError(key, "Can not find airplane with id: " + key);
+  throw new NotFoundError(key, `Airplane with id '${id.toString()}' not found`);
 }
 
 export function set(airplane: IAirplane): void {
@@ -31,16 +31,22 @@ export function remove(id: Guid): void {
   delete pool[toKey(id)];
 }
 
-let sync: boolean = false;
-
-export function lock(): void {
-  while (sync) {
-    // wait
+export function byLandingFlight(flightId: Guid): IAirplane {
+  for (let key in pool) {
+    if (flightId.equals(pool[key].landingFlight.id)) {
+      return pool[key];
+    }
   }
-
-  sync = true;
+  throw new NotFoundError(flightId.toString(),
+    `Airplane with landing flight '${flightId.toString()}' not found`);
 }
 
-export function unlock(): void {
-  sync = false;
+export function byDepartureFlight(flightId: Guid): IAirplane {
+  for (let key in pool) {
+    if (flightId.equals(pool[key].departureFlight.id)) {
+      return pool[key];
+    }
+  }
+  throw new NotFoundError(flightId.toString(),
+    `Airplane with departure flight '${flightId.toString()}' not found`);
 }
