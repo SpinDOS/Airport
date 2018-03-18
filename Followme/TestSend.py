@@ -1,3 +1,11 @@
+import pip
+
+
+try:
+    import numpy as np
+except:
+    pip.main(['install', 'numpy'])
+
 import pika
 import sys
 import json
@@ -27,9 +35,4 @@ def sendMovement(carId, fromId, toId):
 
     connection.close()
 
-sendMovement("1", "2", "3")
-l = [1,2,3]
-p = [4,5,6]
-
-for t, o in zip(l,p):
-    print(t, o)
+#sendMovement("1", "2", "3")
