@@ -1,9 +1,35 @@
-import requests
-import pika
-import threading
-import uuid
-import json
-import time
+import pip
+try:
+    import requests
+except:
+    pip.main(['install', 'requests'])
+    import requests
+try:
+    import pika
+except:
+    pip.main(['install', 'pika'])
+    import pika
+try:
+    import threading
+except:
+    pip.main(['install', 'threading'])
+    import threading
+try:
+    import uuid
+except:
+    pip.main(['install', 'uuid'])
+    import uuid
+try:
+    import json
+except:
+    pip.main(['install', 'json'])
+    import json
+try:
+    import time
+except:
+    pip.main(['install', 'time'])
+    import time
+
 
 carList = []
 
