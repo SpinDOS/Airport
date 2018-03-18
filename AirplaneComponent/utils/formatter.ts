@@ -15,7 +15,7 @@ export function id(x: Guid): string {
 }
 
 export function flight(x: IFlight): string {
-  return "Flight " + (x.code || id(x.id));
+  return "Flight " + x.code;
 }
 
 export function airplaneModel(x: IAirplaneModel): string {
@@ -23,23 +23,15 @@ export function airplaneModel(x: IAirplaneModel): string {
 }
 
 export function airplane(x: IAirplane): string {
-  return `Airplane ${x.model.name}${id(x.id)}`;
+  return `Airplane ${x.model.name}(${x.landingFlight.code} -> ${x.departureFlight.code})`;
 }
 
 export function passenger(x: IPassenger): string {
-  return "Passenger " + (x.name || id(x.id));
+  return "Passenger " + x.name;
 }
 
 export function baggage(x: IBaggage): string {
-  if (!x.owner) {
     return "Baggage " + id(x.id);
-  }
-
-  if (x.owner.name) {
-    return x.owner.name + "'s baggage";
-  } else {
-    return `Passenger (${guid(x.owner.id)})'s baggage`;
-  }
 }
 
 export function error(err: any, sourceText?: string): string {

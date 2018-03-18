@@ -6,7 +6,7 @@ export function True(test: boolean, errorMessage?: string): void {
   }
 }
 
-export function AreEqual(expected: any, actual: any): void {
+export function AreEqual<T>(expected: T, actual: T): void {
   if (expected !== actual) {
     throw new LogicalError(`Expected '${expected}', but was '${actual}'`);
   }
