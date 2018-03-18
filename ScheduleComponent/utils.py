@@ -3,7 +3,10 @@ import random
 import requests
 from uuid import uuid4
 
-from .config import AIRPLANE_QUEUE_NAME
+from ScheduleComponent.config import (
+    AIRPLANE_QUEUE_NAME,
+    PASSENGER_API_URI,
+)
 
 
 def get_random_code():
@@ -24,20 +27,18 @@ class Flight:
 
 def send_to_airplane(ch, landing_flight, departure_flight):
     airplane_message = {
-        'type': 'AirplaneCreation',
-        'value': {
+        "type": "CreateLandingAirplane",
+        "value": {
             "landingFlight": {
                 "id": landing_flight.id,
                 "code": landing_flight.code,
                 "passengersCount": landing_flight.passengers_count,
                 "serviceBaggageCount": landing_flight.service_baggage_count
             },
-            "departureFlight": {
-                "id": departure_flight.id,
-                "code": departure_flight.code,
-                "passengersCount": departure_flight.passengers_count,
-                "serviceBaggageCount": departure_flight.service_baggage_count
-            }
+            "id": departure_flight.id,
+            "code": departure_flight.code,
+            "passengersCount": departure_flight.passengers_count,
+            "serviceBaggageCount": departure_flight.service_baggage_count
         }
     }
     ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message))
