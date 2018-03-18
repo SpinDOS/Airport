@@ -1,0 +1,56 @@
+import Router, { IRouterContext } from "koa-router";
+import { Guid } from "guid-typescript";
+import { IQueryParams, validateInfoQueryParams } from "../model/validation/infoQueryParams";
+import { IAirplane } from "../model/airplane";
+import * as airplanePool from "../airPlanePool";
+
+export function register(router: Router): void {
+  router.get("/info", info);
+}
+
+function info(ctx: IRouterContext): void {
+  let params: IQueryParams = validateInfoQueryParams(ctx.request.query);
+  let result: IAirplane[] = airplanesArray().filter(createFilter(params));
+  ctx.body = JSON.stringify(result.map(format));
+}
+
+function format(airplane: IAirplane): object {
+  return {
+    id: airplane.id.toString(),
+    landingFlightId: airplane.landingFlight.id.toString(),
+    departureFlightId: airplane.departureFlight.id.toString(),
+    passengersCount: airplane.passengers.length,
+    baggageCount: airplane.baggages.length,
+    fuel: airplane.fuel,
+    maxFuel: airplane.model.maxFuel,
+    maxPassengersCount: airplane.model.maxPassengersCount,
+    maxBaggageCount: airplane.model.maxBaggageCount,
+    status: airplane.status.type,
+    additionalInfo: airplane.status.additionalInfo,
+  };
+}
+
+function createFilter(params: IQueryParams): (airplane: IAirplane) => boolean {
+  return function(airplane: IAirplane): boolean {
+    if (params.id && !params.id.equals(airplane.id)) {
+      return false;
+    } else if (params.landingFlightId && !params.landingFlightId.equals(airplane.landingFlight.id)) {
+      return false;
+    } else if (params.departureFlightId && !params.departureFlightId.equals(airplane.departureFlight.id)) {
+      return false;
+    } else {
+      return !params.parkingId ||
+        airplane.status.additionalInfo.parkingId === params.parkingId;
+    }
+  };
+}
+
+function airplanesArray(): IAirplane[] {
+  let result: IAirplane[] = [];
+  for (let key in airplanePool.pool) {
+    if (airplanePool.pool.hasOwnProperty(key)) {
+      result.push(airplanePool.pool[key]);
+    }
+  }
+  return result;
+}
