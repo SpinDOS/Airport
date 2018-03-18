@@ -1,56 +1,51 @@
 import * as Amqp from "amqp-ts";
 import * as logger from "../utils/logger";
-import * as mq from "./mq";
-import { MQMessage } from "../model/validation/mqMessage";
 import { ValidationError } from "../errors/validationError";
-import * as formatter from "../utils/modelFormatter";
-import { createAirplane } from "./airplaneCreator";
+import * as formatter from "../utils/formatter";
+import { consumer } from "./mqConsumer";
 
-const url: string = "amqp://user:password@10.99.4.102:5672";
-// "amqps://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi";
+export type MQEndpoint = Amqp.Queue | Amqp.Exchange;
+
+const url: string = "amqps://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi";
+const declareOptions: Amqp.Queue.DeclarationOptions = { durable: true, autoDelete: false };
 
 let connection: Amqp.Connection;
-export let myQueue: Amqp.Queue;
-export let FollowMeMQ: Amqp.Queue;
+let pool: { [name: string]: MQEndpoint } = { };
+
+export let myQueue: MQEndpoint;
+export let visualizerEndpoint: MQEndpoint;
+export let followMeEndpoint: MQEndpoint;
+export let fuelEndpoint: MQEndpoint;
+
+export function getQueueOrExchange(name: string): MQEndpoint {
+  let entry: MQEndpoint | undefined = pool[name];
+  if (!entry) {
+    pool[name] = entry = connection.declareQueue(name, declareOptions);
+  }
+  return entry;
+}
+
+export function send(data: object, to: MQEndpoint, correlationId?: any): void {
+  let message: Amqp.Message = new Amqp.Message(JSON.stringify(data));
+  message.properties.correlation_id = correlationId;
+  message.sendTo(to);
+}
 
 export function start(): void {
   connection = new Amqp.Connection(url);
+  fillPool();
 
-  myQueue = connection.declareQueue("Airplane", { durable: true, autoDelete: false });
-  FollowMeMQ = connection.declareQueue("FMMQ");
-
-  mq.myQueue.activateConsumer(consumer, { exclusive: true, noAck: false });
+  myQueue.activateConsumer(consumer, { exclusive: true, noAck: false });
   logger.log("Connected to RabbitMQ");
 }
 
-function consumer(message: Amqp.Message): void {
-  let str: string | undefined = undefined;
-  try {
-    str = decodeContent(message);
-    let mqMes: MQMessage = MQMessage.validate(str);
-    handleReq(mqMes);
-  } catch(e) {
-    logger.error(formatter.error(e, str));
-  }
+// tslint:disable:no-string-literal
+function fillPool(): void {
+  myQueue = connection.declareQueue("Airplane", declareOptions);
+  pool[myQueue.name] = myQueue;
 
-  message.ack();
+  followMeEndpoint = pool["FollowMe"] = pool["FMMQ"] = connection.declareQueue("FMMQ", declareOptions);
+  fuelEndpoint = pool["Fuel"] = pool["refuelerMQ"] = connection.declareQueue("refuelerMQ", declareOptions);
+  visualizerEndpoint = pool["Visualizer"] = connection.declareQueue("Visualizer", declareOptions);
 }
-
-function decodeContent(message: Amqp.Message): string {
-  try {
-    return message.content.toString("utf8");
-  } catch {
-    throw new ValidationError({ message: "Invalid MQ message encoding" });
-  }
-}
-
-function handleReq(mqMessage: MQMessage): void {
-  switch (mqMessage.type) {
-    case "CreateLandingAirplane":
-      createAirplane(mqMessage);
-      break;
-
-    default:
-      throw new ValidationError( { message: "Invalid MQ message type: " + mqMessage.type });
-  }
-}
+// tslint:enable:no-string-literal
