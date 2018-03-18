@@ -4,10 +4,11 @@ import { Middleware } from "koa-compose";
 import { Guid } from "guid-typescript";
 import bodyParser from "koa-bodyparser";
 import * as logger from "../utils/logger";
-import * as formatter from "../utils/modelFormatter";
-import * as followMe from "./followMe";
+import * as formatter from "../utils/formatter";
 import * as airplanePool from "../airPlanePool";
 import * as HttpStatus from "http-status-codes";
+import * as followMe from "./followMe";
+import * as info from "./info";
 import { IAirplane } from "../model/airplane";
 import { LogicalError } from "../errors/logicalError";
 import { ValidationError } from "../errors/validationError";
@@ -24,16 +25,20 @@ export function start(): void {
   app.use(bodyParser());
   app.use(router.routes());
 
-  app.listen(8081);
+  app.listen(8081, "localhost"); // "10.99.171.254");
   logger.log(`Http server is listening on http://localhost:${port}/`);
 }
 
 async function handleErrors(ctx: Koa.Context, next: () => Promise<any>): Promise<any> {
-  next().catch(err => {
+  await next().catch(err => {
     const invalidCode: number = -0.5;
     let statusCode: number = invalidCode;
 
     if (err instanceof LogicalError || err instanceof ValidationError) {
+      if (err instanceof LogicalError && err.message) {
+        ctx.response.body = err.message;
+      }
+
       statusCode = HttpStatus.BAD_REQUEST;
     } else if (err instanceof NotFoundError) {
       statusCode = HttpStatus.NOT_FOUND;
@@ -52,6 +57,7 @@ async function handleErrors(ctx: Koa.Context, next: () => Promise<any>): Promise
 }
 
 function setUpRouter(router: Router): void {
+  info.register(router);
   let routerWithAirplane: Router = router.param("airplane", validateAirplaneId);
   followMe.register(routerWithAirplane);
 
@@ -60,15 +66,11 @@ function setUpRouter(router: Router): void {
   });
 }
 
-function validateAirplaneId(id: string, ctx: IRouterContext, next: () => Promise<any>): any {
-  if (!Guid.isGuid(id)) {
-    throw new ValidationError({message: "Invalid airplane id format"});
+function validateAirplaneId(id: string, ctx: IRouterContext, next: () => Promise<any>): Promise<any> {
+  if (!id || !Guid.isGuid(id)) {
+    throw new ValidationError("Invalid airplane id format");
   }
 
-  ctx.airplane = airplanePool.tryGet(Guid.parse(id));
-  if (!ctx.airplane) {
-    throw new NotFoundError(id, "Can not find airplane with id: " + id);
-  }
-
+  ctx.airplane = airplanePool.get(Guid.parse(id));
   return next();
 }
