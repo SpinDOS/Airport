@@ -4,8 +4,15 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 
+#include <cstdio>
+#include <cstring>
+
+GtcLogic::GtcLogic()
+	: _sender(_env)
+	{}
+
 GtcLogic::ProcessStatus
-GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_properties_t &prop)
+GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_properties_t *prop)
 {
 	auto svcObj  = doc["service"];
 	auto srcObj  = doc["from"];
@@ -14,7 +21,7 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 
 	if (svcObj == QJsonValue::Undefined || srcObj == QJsonValue::Undefined
 			|| dstObj == QJsonValue::Undefined || statObj == QJsonValue::Undefined) {
-		qWarning() << "[ERROR] Bad movement message format";
+		qWarning() << "[WARNING] Bad movement message format";
 		return ProcessStatus::Nack;
 	}
 
@@ -25,22 +32,22 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 
 	if (svc.isNull() || src.isNull()
 			|| dst.isNull() || stat.isNull()) {
-		qWarning() << "[ERROR] Bad json fields type";
+		qWarning() << "[WARNING] bad json fields type";
 		return ProcessStatus::Nack;
 	}
 
 	qDebug() << "[TRACE] got movement message from" << svc
 			 << src << "->" << dst << "status:" << stat;
-	//Блокировать вершину нужно после удачной отправки сообщения
-	if (stat == NeedMovement) {
+
+	if (stat == _env.NeedMovement) {
 		//auto loc = _controller.nextLocation(src, dst);
 		QString loc("testloc");
 		if (loc.isNull())
 			return ProcessStatus::Retry;
-		if (postMovementRequest(src, loc, svc, prop.correlation_id, prop.reply_to))
+		if (_sender.postMovementMsg(src, loc, svc, prop))
 			return ProcessStatus::Error;
-
-	} else if (stat == DoneMovement) {
+		//Блокировать вершину нужно после удачной отправки сообщения
+	} else if (stat == _env.DoneMovement) {
 		//unlock vertex
 	} else {
 		qWarning() << "[WARNING] Unknown movement status. Usage \"status\": \"need|done\"";
@@ -53,44 +60,112 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 GtcLogic::ProcessStatus
 GtcLogic::processAcceptRequest(const QJsonDocument &doc)
 {
+	auto svcObj     = doc["service"];
+	auto flightObj  = doc["flight_id"];
+	auto parkingObj = doc["aircraft_id"];
+
+	if (svcObj == QJsonValue::Undefined || flightObj == QJsonValue::Undefined
+			|| parkingObj == QJsonValue::Undefined) {
+		qWarning() << "[WARNING] bad accept message fields";
+		return ProcessStatus::Nack;
+	}
+
+	auto svc = svcObj.toString();
+	auto flightId = flightObj.toString();
+	auto parkingId = parkingObj.toString();
+
+	if (svc.isNull() || flightId.isNull() || parkingId.isNull()) {
+		qWarning() << "[WARNING] << bad accpet message format";
+		return ProcessStatus::Nack;
+	}
+
+	if (svc != "follow_me") {
+		qWarning() << "[WARNING] get accept message from" << svc;
+		return ProcessStatus::Nack;
+	}
+
+	qDebug() << "[TRACE] got accept message from" << svc
+			 << "flightId:" << flightId << "aircraft:" << parkingId;
+
+	auto &airplain = _airplains[flightId];
+	airplain.parkingId = parkingId;
+
+	if (_sender.postServiceMsg(airplain.state, flightId, parkingId)) {
+		qWarning() << "[ERROR] fail to post service message";
+		return ProcessStatus::Error;
+	}
+
+	return ProcessStatus::Ack;
 
 }
 
 GtcLogic::ProcessStatus
 GtcLogic::processMaintainRequest(const QJsonDocument &doc)
 {
+	auto svcObj = doc["service"];
+	auto flightObj = doc["flight_id"];
 
+	if (svcObj == QJsonValue::Undefined || flightObj == QJsonValue::Undefined) {
+		qWarning() << "[WARNING] bad maintain message fields";
+		return ProcessStatus::Nack;
+	}
+
+	auto svc = svcObj.toString();
+	auto flightId = flightObj.toString();
+
+	if (svc.isNull() || flightId.isNull()) {
+		qWarning() << "[WARNING] bad maintain message format";
+		return ProcessStatus::Nack;
+	}
+
+	auto airplain = _airplains.find(flightId);
+	if (airplain == _airplains.end()) {
+		qWarning() << "[WARNING] airplain not found";
+		return ProcessStatus::Nack;
+	}
+
+	Airplain::State current = airplain->state;
+	Airplain::State next;
+	switch (current) {
+	case Airplain::State::Unloading:
+		if (svc == "bus")
+			airplain->isBusUnload = true;
+		else if (svc == "baggage")
+			airplain->isBaggageUnload = true;
+		next = airplain->nextState();
+		break;
+	case Airplain::State::Loading:
+		if (svc == "bus")
+			airplain->isBusLoad = true;
+		else if (svc == "baggage")
+			airplain->isBaggageLoad = true;
+		next = airplain->nextState();
+		break;
+	default:
+		next = airplain->nextState();
+		break;
+	}
+
+	if (current == next)
+		return ProcessStatus::Ack;
+
+	if (next == Airplain::State::Away) {
+		qDebug() << "[INFO] Airplan" << flightId << "away";
+		_airplains.erase(airplain);
+		return ProcessStatus::Ack;
+	}
+
+	if (_sender.postServiceMsg(next, flightId, airplain->parkingId)) {
+		qWarning() << "[ERROR] fail post service message";
+		return ProcessStatus::Error;
+	}
+
+	return ProcessStatus::Ack;
 }
-
-qint32 GtcLogic::postMovementRequest(const QString &src, const QString &dst, const QString &svc,
-									 const amqp_bytes_t &corrId, const amqp_bytes_t &replyTo)
-{
-	QJsonObject answer;
-	answer.insert("service", svc);
-	answer.insert("request", MovementRequest);
-	answer.insert("from", src);
-	answer.insert("to", dst);
-
-	QJsonDocument doc(answer);
-	QByteArray data(doc.toJson(QJsonDocument::Compact));
-
-	amqp_basic_properties_t prop;
-//	prop.content_type = amqp_cstring_bytes(_content_type.constData());
-//	prop.content_encoding = amqp_cstring_bytes(_content_encoding.constData());
-	prop.reply_to = _queuename;
-//	prop.correlation_id = corrId;
-
-	auto r = amqp_basic_publish(_connect, 1, amqp_empty_bytes, replyTo, 0, 0,
-								NULL, amqp_cstring_bytes(data.constData()));
-
-	return (r == AMQP_STATUS_OK) ? 0 : -1;
-}
-
-
 
 qint32 GtcLogic::checkConnection()
 {
-	_status = amqp_get_rpc_reply(_connect);
+	_status = amqp_get_rpc_reply(_env.connect);
 	if (_status.reply_type != AMQP_RESPONSE_NORMAL) {
 		qWarning() << "[ERROR] " << amqp_error_string(_status.reply_type);
 		return -1;
@@ -128,8 +203,8 @@ qint32 GtcLogic::init(const QString &configPath)
 	if (auto r = readJsonConfig(value.toObject()))
 		return r;
 
-	_connect = amqp_new_connection();
-	if (!_connect) {
+	_env.connect = amqp_new_connection();
+	if (!_env.connect) {
 		qWarning() << "[ERROR] fail create new connection";
 		return EINVAL;
 	}
@@ -139,39 +214,56 @@ qint32 GtcLogic::init(const QString &configPath)
 
 qint32 GtcLogic::readJsonConfig(const QJsonObject &credits)
 {
-	if (credits["hostname"].isUndefined() || credits["vhost"].isUndefined() ||
-			credits["password"].isUndefined() || credits["username"].isUndefined()) {
+	auto hostnameObj = credits["hostname"];
+	auto vhostObj = credits["vhost"];
+	auto userObj = credits["username"];
+	auto passwdObj = credits["password"];
+	if (hostnameObj.isUndefined() || vhostObj.isUndefined() ||
+			passwdObj.isUndefined() || userObj.isUndefined()) {
 		qWarning() << "[ERROR] some login credits are missing";
 		return EINVAL;
 	}
 
-	if (credits["port"].isUndefined()) {
+	auto portObj = credits["port"];
+	if (portObj.isUndefined()) {
 		qWarning() << "[ERROR] port not found";
 		return EINVAL;
 	}
 
-	if (credits["contentType"].isUndefined() || credits["contentEncoding"].isUndefined()) {
-		qWarning() << "[ERROR] content info not found";
-		return EINVAL;
-	}
-
-	if (credits["exchange"].isUndefined() || credits["exchangeType"].isUndefined() ||
-			credits["bindingKey"].isUndefined() || credits["consumerName"].isUndefined()) {
+	auto exchangeObj = credits["exchange"];
+	auto exchTypeObj = credits["exchangeType"];
+	auto bindingKeyObj = credits["bindingKey"];
+	auto consumerObj = credits["consumerName"];
+	if (exchangeObj.isUndefined() || exchTypeObj.isUndefined() ||
+			bindingKeyObj.isUndefined() || consumerObj.isUndefined()) {
 		qWarning() << "[ERROR] some stream data are missing";
 		return EINVAL;
 	}
 
-	_hostname     = credits["hostname"].toString();
-	_vhost        = credits["vhost"].toString();
-	_password     = credits["password"].toString();
-	_username     = credits["username"].toString();
-	_exchange     = credits["exchange"].toString();
-	_exchangeType = credits["exchangeType"].toString();
-	_bindingKey   = credits["bindingKey"].toString();
-	_consumerName = credits["consumerName"].toString();
-	_port         = credits["port"].toInt();
-	_content_type = credits["contentType"].toString().toUtf8();
-	_content_encoding = credits["contentEncoding"].toString().toUtf8();
+	auto busInfo = credits["busQueue"];
+	auto bagInfo = credits["bagQueue"];
+	auto fuelInfo = credits["fuelQueue"];
+	auto followMeInfo = credits["followMeQueue"];
+	if (busInfo.isUndefined() || bagInfo.isUndefined() ||
+			fuelInfo.isUndefined() || followMeInfo.isUndefined()) {
+		qWarning() << "[ERROR] queues of machine servicies not define";
+		return EINVAL;
+	}
+
+	_hostname      = hostnameObj.toString();
+	_vhost         = vhostObj.toString();
+	_password      = passwdObj.toString();
+	_username      = userObj.toString();
+	_exchange      = exchangeObj.toString();
+	_exchangeType  = exchTypeObj.toString();
+	_bindingKey    = bindingKeyObj.toString();
+	_consumerName  = consumerObj.toString();
+	_port          = portObj.toInt();
+
+	_env.busQueue      = busInfo.toString().toUtf8();
+	_env.bagQueue      = bagInfo.toString().toUtf8();
+	_env.fuelQueue     = fuelInfo.toString().toUtf8();
+	_env.followMeQueue = followMeInfo.toString().toUtf8();
 
 	return 0;
 }
@@ -189,7 +281,7 @@ qint32 GtcLogic::open()
 		return r;
 
 	qDebug() << "[INFO] login in " << _hostname;
-	_status = amqp_login(_connect, vhost.c_str(), 200, 131072, 0,
+	_status = amqp_login(_env.connect, vhost.c_str(), 200, 131072, 0,
 						 AMQP_SASL_METHOD_PLAIN, user.c_str(), passwd.c_str());
 	if (_status.reply_type != AMQP_RESPONSE_NORMAL) {
 		qWarning() << "[ERROR] " << amqp_error_string(_status.reply_type);
@@ -197,7 +289,7 @@ qint32 GtcLogic::open()
 	}
 
 	qDebug() << "[INFO] opening channel";
-	amqp_channel_open(_connect, 1);
+	amqp_channel_open(_env.connect, 1);
 	if (checkConnection())
 		return EAGAIN;
 
@@ -211,7 +303,7 @@ qint32 GtcLogic::openTcpSocket()
 {
 	const auto &host   = _hostname.toStdString();
 
-	_socket = amqp_tcp_socket_new(_connect);
+	_socket = amqp_tcp_socket_new(_env.connect);
 	if (!_socket) {
 		qWarning() << "[ERROR] fail create tcp socket";
 		return EAGAIN;
@@ -233,31 +325,31 @@ qint32 GtcLogic::openMsgQueueStream()
 	const auto &consumer = _consumerName.toStdString();
 
 	qDebug() << "[INFO] declaring exchange";
-	amqp_exchange_declare(_connect, 1, amqp_cstring_bytes(exch.c_str()),
+	amqp_exchange_declare(_env.connect, 1, amqp_cstring_bytes(exch.c_str()),
 						  amqp_cstring_bytes(exchType.c_str()), 0, 1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
 	qDebug() << "[INFO] declaring queue";
-	auto r = amqp_queue_declare(_connect, 1, amqp_cstring_bytes(bindKey.c_str()),
+	auto r = amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(bindKey.c_str()),
 								0, 1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
-	_queuename = amqp_bytes_malloc_dup(r->queue);
-	if (_queuename.bytes == NULL) {
+	_env.queuename = amqp_bytes_malloc_dup(r->queue);
+	if (_env.queuename.bytes == NULL) {
 		qWarning() << "[ERROR] out of memory";
 		return EAGAIN;
 	}
 
 	qDebug() << "[INFO] bind queue";
-	amqp_queue_bind(_connect, 1, _queuename, amqp_cstring_bytes(exch.c_str()),
+	amqp_queue_bind(_env.connect, 1, _env.queuename, amqp_cstring_bytes(exch.c_str()),
 					amqp_cstring_bytes(bindKey.c_str()), amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
 	qDebug() << "[INFO] create basic consume:" << _consumerName;
-	amqp_basic_consume(_connect, 1, _queuename, amqp_cstring_bytes(consumer.c_str()),
+	amqp_basic_consume(_env.connect, 1, _env.queuename, amqp_cstring_bytes(consumer.c_str()),
 					   1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
@@ -268,9 +360,9 @@ qint32 GtcLogic::openMsgQueueStream()
 qint32 GtcLogic::process()
 {
 	amqp_envelope_t envelope;
-	amqp_maybe_release_buffers(_connect);
+	amqp_maybe_release_buffers(_env.connect);
 
-	_status = amqp_consume_message(_connect, &envelope, NULL, 0);
+	_status = amqp_consume_message(_env.connect, &envelope, NULL, 0);
 	switch (_status.reply_type) {
 	case AMQP_RESPONSE_NONE:
 		qWarning() << "[ERROR] got EOF from socket:" << amqp_error_string(_status.reply_type);
@@ -293,11 +385,11 @@ qint32 GtcLogic::process()
 														 : QString();
 
 	ProcessStatus st;
-	if (request == MovementRequest)
-		st = processMovementRequest(doc, envelope.message.properties);
-	else if (request == AcceptRequest)
+	if (request == _env.MovementRequest)
+		st = processMovementRequest(doc, &envelope.message.properties);
+	else if (request == _env.AcceptRequest)
 		st = processAcceptRequest(doc);
-	else if (request == MaintainRequest)
+	else if (request == _env.MaintainRequest)
 		st = processMaintainRequest(doc);
 	else
 		st = ProcessStatus::Nack;
@@ -305,22 +397,21 @@ qint32 GtcLogic::process()
 	switch (st) {
 	case ProcessStatus::Ack:
 		qDebug() << "[TRACE] ack" << request << "message";
-		//amqp_basic_ack(_connect, 1, envelope.delivery_tag, 0);
+		amqp_basic_ack(_env.connect, 1, envelope.delivery_tag, 0);
 		break;
 	case ProcessStatus::Retry:
 		qDebug() << "[TRACE] requeue" << request << "message";
-		//amqp_basic_nack(_connect, 1, envelope.delivery_tag, 0, true);
+		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, true);
 		break;
 	case ProcessStatus::Nack:
-		qWarning() << "[WARNING] bad json data:" << request;
-		//amqp_basic_nack(_connect, 1, envelope.delivery_tag, 0, false);
+		qWarning() << "[WARNING] bad json data";
+		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, false);
 		break;
 	case ProcessStatus::Error:
 		qWarning() << "[ERROR] fail to process" << request << "message";
-		//amqp_basic_nack(_connect, 1, envelope.delivery_tag, 0, true);
+		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, true);
 		break;
 	}
-	amqp_basic_ack(_connect, 1, envelope.delivery_tag, 0);
 	amqp_destroy_envelope(&envelope);
 
 	return (st != ProcessStatus::Error) ? 0 : EAGAIN;
@@ -329,15 +420,15 @@ qint32 GtcLogic::process()
 void GtcLogic::close()
 {
 	qDebug() << "[INFO] close gtc logic";
-	amqp_bytes_free(_queuename);
-	_queuename = {0, NULL};
+	amqp_bytes_free(_env.queuename);
+	_env.queuename = {0, NULL};
 
-	amqp_channel_close(_connect, 1, AMQP_REPLY_SUCCESS);
-	amqp_connection_close(_connect, AMQP_REPLY_SUCCESS);
+	amqp_channel_close(_env.connect, 1, AMQP_REPLY_SUCCESS);
+	amqp_connection_close(_env.connect, AMQP_REPLY_SUCCESS);
 }
 
 void GtcLogic::destroy()
 {
 	qDebug() << "[INFO] destroy gtc logic";
-	amqp_destroy_connection(_connect);
+	amqp_destroy_connection(_env.connect);
 }
