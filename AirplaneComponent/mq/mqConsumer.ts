@@ -8,6 +8,7 @@ import { unloadBaggage, loadBaggage } from "./baggageLoader";
 import { landing } from "./landing";
 import { refuel } from "./refuel";
 import { fly } from "./fly";
+import { loadPassengers, unloadPassengers } from "./passengersLoader";
 
 export function consumer(message: Amqp.Message): void {
   let str: string | undefined = undefined;
@@ -53,6 +54,12 @@ function handleReq(mqMessage: IMQMessage): void {
       break;
     case "fly":
       fly(mqMessage);
+      break;
+    case "loadpassengers":
+      loadPassengers(mqMessage);
+      break;
+    case "unloadpassengers":
+      unloadPassengers(mqMessage);
       break;
 
     default:

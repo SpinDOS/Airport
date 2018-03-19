@@ -48,14 +48,14 @@ function updateStatusBeforeUnload(airplane: IAirplane, carId: string): void {
   } else {
     assert.AreEqual(AirplaneStatus.UnloadingPassengersAndBaggage, airplane.status.type);
   }
-  addBaggageCar(airplane, carId);
+  addCar(airplane, carId, "baggageCars");
   logger.log(formatter.airplane(airplane) + " is unloading baggage to " + carId);
 }
 
 function updateStatusAfterUnload(airplane: IAirplane, carId: string): void {
   logger.log(formatter.airplane(airplane) + " finished unloading baggage to " + carId);
   checkUnloadEnd(airplane);
-  removeBaggageCar(airplane, carId);
+  removeCar(airplane, carId, "baggageCars");
 }
 
 function notifyAboutUnload(baggage: IBaggage[], unloadReq: IUnloadBaggageReq, mqMessage: IMQMessage): void {
@@ -103,12 +103,13 @@ function updateStatusBeforeLoad(airplane: IAirplane, carId: string): void {
   } else {
     assert.AreEqual(AirplaneStatus.LoadingPassengersAndBaggage, airplane.status.type);
   }
-  addBaggageCar(airplane, carId);
+  addCar(airplane, carId, "baggageCars");
   logger.log(formatter.airplane(airplane) + " is loading baggage from " + carId);
 }
 
 function updateStatusAfterLoad(airplane: IAirplane, carId: string): void {
   logger.log(formatter.airplane(airplane) + " finished loading baggage from " + carId);
+  removeCar(airplane, carId, "baggageCars");
   checkLoadEnd(airplane);
 }
 
@@ -146,15 +147,15 @@ export function checkLoadEnd(airplane: IAirplane): boolean {
 
 
 
-function addBaggageCar(airplane: IAirplane, carId: string): void {
-  if (!airplane.status.additionalInfo.baggageCars) {
-    airplane.status.additionalInfo.baggageCars = [];
+export function addCar(airplane: IAirplane, carId: string, collectionName: "buses" | "baggageCars"): void {
+  if (!airplane.status.additionalInfo[collectionName]) {
+    airplane.status.additionalInfo[collectionName] = [];
   }
-  airplane.status.additionalInfo.baggageCars.push(carId);
+  airplane.status.additionalInfo[collectionName]!.push(carId);
 }
 
-function removeBaggageCar(airplane: IAirplane, carId: string): void {
-  let arr: Array<string> = airplane.status.additionalInfo.baggageCars!;
+export function removeCar(airplane: IAirplane, carId: string, collectionName: "buses" | "baggageCars"): void {
+  let arr: Array<string> = airplane.status.additionalInfo[collectionName]!;
 
   for (let i: number = 0; i < arr.length; i++) {
     if (arr[i] === carId) {
@@ -164,6 +165,6 @@ function removeBaggageCar(airplane: IAirplane, carId: string): void {
   }
 
   if (arr.length === 0) {
-    delete airplane.status.additionalInfo.baggageCars;
+    delete airplane.status.additionalInfo[collectionName];
   }
 }

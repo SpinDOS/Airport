@@ -19,6 +19,7 @@ export interface IAirplane {
     type: AirplaneStatus;
     additionalInfo: {
       parkingId?: string,
+      buses?: string[],
       baggageCars?: string[],
       followMeCarId?: string,
       stripId?: string,

@@ -35,7 +35,7 @@ export function validatePasBagCreateResponse(response: any): IPassBagCreateRes {
   };
 }
 
-function validatePassenger(passenger: any): IResponsePassenger {
+export function validatePassenger(passenger: any): IResponsePassenger {
   if (!passenger) {
     throw new ValidationError("Empty passenger found");
   }
