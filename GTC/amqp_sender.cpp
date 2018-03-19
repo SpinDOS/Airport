@@ -24,6 +24,8 @@ qint32 AmqpSender::postMovementMsg(const QString &src, const QString &dst,
 	QJsonDocument doc(answer);
 	QByteArray data(doc.toJson(QJsonDocument::Compact));
 
+	_log.info("post movement message to " + svc);
+
 	auto r = publish(prop->reply_to, prop, data);
 
 	return (r == AMQP_STATUS_OK) ? 0 : -1;
@@ -44,15 +46,18 @@ qint32 AmqpSender::postServiceMsg(Airplain::State state, const QString &flightId
 		request.insert("action", "unload");
 		request.insert("gate_id", _env.PassangerGate);
 
+		_log.info("post service (unload) message to bus");
 		r1 = publish(amqp_cstring_bytes(_env.busQueue.constData()), &_post_prop,
 					 QJsonDocument(request).toJson(QJsonDocument::Compact));
 
 		request["service"] = "baggage";
+		_log.info("post service (unload) message to baggage");
 		r2 = publish(amqp_cstring_bytes(_env.bagQueue.constData()), &_post_prop,
 					 QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
 	case Airplain::State::Fueling:
 		request.insert("service", "fuel");
+		_log.info("post service message to fuel");
 		r1 = r2 = publish(amqp_cstring_bytes(_env.fuelQueue.constData()), &_post_prop,
 						  QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
@@ -61,22 +66,22 @@ qint32 AmqpSender::postServiceMsg(Airplain::State state, const QString &flightId
 		request.insert("action", "load");
 		request.insert("gate_id", _env.PassangerGate);
 
+		_log.info("post service (load) message to bus");
 		r1 = publish(amqp_cstring_bytes(_env.busQueue.constData()), &_post_prop,
 					 QJsonDocument(request).toJson(QJsonDocument::Compact));
-
 		request["service"] = "baggage";
+		_log.info("post service (load) message to baggage");
 		r2 = publish(amqp_cstring_bytes(_env.bagQueue.constData()), &_post_prop,
 					 QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
 	case Airplain::State::Departure:
 		request.insert("service", "follow_me");
+		_log.info("post service message to follow_me");
 		r1 = r2 = publish(amqp_cstring_bytes(_env.followMeQueue.constData()), &_post_prop,
 						  QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
 	default:
-		qWarning() << "[WARNING] Unknown airplain state";
-		return -1;
-		break;
+		return _log.errorRet(-1, "unknown airplain state");
 	}
 
 	return (r1 == AMQP_STATUS_OK && r2 == AMQP_STATUS_OK) ? 0 : -1;

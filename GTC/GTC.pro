@@ -22,5 +22,6 @@ HEADERS += \
 	gtc.h \
     service.h \
     env.h \
-    amqp_sender.h
+    amqp_sender.h \
+    logger.h
 
