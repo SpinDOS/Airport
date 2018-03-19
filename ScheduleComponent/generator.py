@@ -12,6 +12,9 @@ from ScheduleComponent.utils import (
     send_to_passengers,
 )
 
+# credentials = pika.PlainCredentials('user', 'password')
+# parameters = pika.ConnectionParameters('IP here', 5672, '/', credentials)
+# connection = pika.BlockingConnection(parameters)
 connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
 channel = connection.channel()
 channel.queue_declare(queue=SCHEDULE_QUEUE_NAME, durable=True)
@@ -35,7 +38,7 @@ def generator(ch, method, props, body):
     send_flights(ch, landing_flight, departure_flight)
 
 
-if len(sys.argv) == 1:
+if len(sys.argv) > 1:
     channel.basic_consume(generator, queue=SCHEDULE_QUEUE_NAME, no_ack=True)
     channel.start_consuming()
 else:

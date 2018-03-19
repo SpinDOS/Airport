@@ -1,4 +1,5 @@
 AIRPLANE_API = 'Sasha api'
+AIRPLANE_QUEUE = 'Airplane'
 BAGGAGE_API = 'http://dmitryshepelev15.pythonanywhere.com'
 BAGGAGE_QUEUE = 'baggage'
 PASSENGER_API = 'http://quantum0.pythonanywhere.com'
