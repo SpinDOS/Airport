@@ -10,14 +10,14 @@ import * as mq from "../mq/mq";
 import { Message } from "amqp-ts";
 import * as formatter from "../utils/formatter";
 import { IMQMessage } from "../model/validation/mqMessage";
-import { passengersUrl } from "../webapi/httpClient";
 import * as rp from "request-promise";
-import { ConnectionError } from "../errors/connectionError";
+import { ConnectionError, onApiError } from "../errors/connectionError";
 import { IFlight } from "../model/flight";
 import { IPassBagCreateRes, validatePasBagCreateResponse } from "../model/validation/passBagCreateRes";
 import { isNotEmptyString, strToPOCO } from "../utils/validation";
 import { ValidationError } from "../errors/validationError";
 import * as assert from "../utils/assert";
+import { passengersUrl } from "../webapi/httpServer";
 
 class PasAndBag {
   constructor(public readonly passengers: IPassenger[],
@@ -96,16 +96,9 @@ async function generatePasAndBagFromAPI(
   .then(parseResponse);
 }
 
-function onApiError(err: any): never {
-  if (err.statusCode) {
-    throw new ConnectionError("Passenger API error: status " + err.statusCode);
-  } else {
-    throw new ConnectionError("Passenger API error");
-  }
-}
-
 function parseResponse(data: any): PasAndBag {
-  let response: IPassBagCreateRes = validatePasBagCreateResponse(strToPOCO(data));
+  data = strToPOCO(data);
+  let response: IPassBagCreateRes = validatePasBagCreateResponse(data);
 
   let passengers: IPassenger[] = response.passengers.map(p => {
     return {
