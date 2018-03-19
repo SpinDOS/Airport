@@ -14,6 +14,8 @@ import { LogicalError } from "../errors/logicalError";
 import { ValidationError } from "../errors/validationError";
 import { NotFoundError } from "../errors/notFoundError";
 
+export const passengersUrl: string = "http://quantum0.pythonanywhere.com/";
+
 const port: number = 8081;
 const app: Koa = new Koa();
 

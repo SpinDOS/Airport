@@ -9,7 +9,7 @@ import * as formatter from "../utils/formatter";
 import * as mq from "./mq";
 import { delay } from "bluebird";
 import * as request from "request";
-import { passengersUrl } from "../webapi/httpClient";
+import { passengersUrl } from "../webapi/httpServer";
 
 const duration: number = 3000;
 export async function fly(mqMessage: IMQMessage): Promise<void> {
@@ -57,7 +57,9 @@ function end(airplane: IAirplane): void {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(passengersRequestBody),
   }, (_, err) => {
-    logger.error("Error notifying passengers about airplane fly: " + formatter.airplane(airplane));
+    if (err) {
+      logger.error("Error notifying passengers about airplane fly: " + formatter.airplane(airplane));
+    }
   });
 
   logger.log(formatter.airplane(airplane) + " has flown away");
