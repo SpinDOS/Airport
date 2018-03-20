@@ -44,10 +44,11 @@ function updateStatusEnd(airplane: IAirplane): void {
 
 function visualizeLanding(landingReq: ILandingReq, duration: number): void {
   let body: any = {
-    type: "landing",
-    airplane: landingReq.aircraftId.toString(),
-    stripId: landingReq.stripId,
-    duration: duration,
+    Type: "animation",
+    AnimationType: "touchdown",
+    Transport: "Aircraft|" + landingReq.aircraftId.toString(),
+    Strip: landingReq.stripId,
+    Duration: duration,
   };
   mq.send(body, mq.visualizerEndpoint);
 }

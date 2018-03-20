@@ -32,10 +32,11 @@ function updateStatus(airplane: IAirplane): void {
 
 function visualizeFly(airplane: IAirplane): void {
   let message: any = {
-    type: "flying",
-    airplaneId: airplane.id,
-    stripId: airplane.status.additionalInfo.stripId,
-    duration: duration,
+    Type: "animation",
+    AnimationType: "wheelsup",
+    Transport: "Aircraft|" + airplane.id.toString(),
+    Strip: airplane.status.additionalInfo.stripId,
+    Duration: duration,
   };
 
   mq.send(message, mq.visualizerEndpoint);
