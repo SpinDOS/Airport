@@ -10,7 +10,7 @@ from ScheduleComponent.config import (
 
 
 def get_random_code():
-    prefixes = ['S7', 'GH', 'СУ', 'ЮТ', 'ЯК', 'ДР', 'RT', 'LH']
+    prefixes = ['S7', 'GH', 'SU', 'ЮТ', 'ЯК', 'ДР', 'RT', 'LH']
     prefix = random.choice(prefixes)
     number = random.randint(1000, 9999)
     code = "%s-%s" % (prefix, number)
@@ -26,6 +26,7 @@ class Flight:
 
 
 def send_to_airplane(ch, landing_flight, departure_flight):
+    print('Landing flight', landing_flight.id)
     airplane_message = {
         "type": "CreateLandingAirplane",
         "value": {
@@ -35,13 +36,15 @@ def send_to_airplane(ch, landing_flight, departure_flight):
                 "passengersCount": landing_flight.passengers_count,
                 "serviceBaggageCount": landing_flight.service_baggage_count
             },
-            "id": departure_flight.id,
-            "code": departure_flight.code,
-            "passengersCount": departure_flight.passengers_count,
-            "serviceBaggageCount": departure_flight.service_baggage_count
+            "departureFlight": {
+                "id": departure_flight.id,
+                "code": departure_flight.code,
+                "passengersCount": departure_flight.passengers_count,
+                "serviceBaggageCount": departure_flight.service_baggage_count
+            }
         }
     }
-    ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message))
+    ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message).encode('utf-8'))
 
 
 def send_to_passengers(flight):
