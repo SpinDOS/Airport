@@ -9,7 +9,7 @@
 
 GtcLogic::GtcLogic()
 	: _log("GtcLogic"), _sender(_env)
-	{}
+{}
 
 GtcLogic::ProcessStatus
 GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_properties_t *prop)
@@ -20,7 +20,7 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 	auto statObj = doc["status"];
 
 	if (svcObj.isUndefined() || srcObj.isUndefined()
-			|| dstObj.isUndefined() || statObj.isUndefined())
+	        || dstObj.isUndefined() || statObj.isUndefined())
 		return _log.errorRet(ProcessStatus::Nack, "bad movement message format");
 
 	auto svc  = svcObj.toString();
@@ -29,24 +29,23 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 	auto stat = statObj.toString();
 
 	if (svc.isNull() || src.isNull()
-			|| dst.isNull() || stat.isNull())
+	        || dst.isNull() || stat.isNull())
 		return _log.errorRet(ProcessStatus::Nack, "bad json fields type");
 
 	_log.info("got movement message from " + svc + " src -> " + dst + " status: " + stat);
 
 	if (stat == _env.NeedMovement) {
-		//auto loc = _controller.nextLocation(src, dst);
-		QString loc("testloc");
-		if (loc.isNull())
+		auto nextLoc = _router.moveTo(src, dst);
+		if (nextLoc.isEmpty())
 			return ProcessStatus::Retry;
-		if (_sender.postMovementMsg(src, loc, svc, prop))
+		if (_sender.postMovementMsg(src, nextLoc, svc, prop))
 			return ProcessStatus::Error;
-		//Блокировать вершину нужно после удачной отправки сообщения
+		_router.lock(src, dst);
 	} else if (stat == _env.DoneMovement) {
-		//unlock vertex
+		_router.unlock(src);
 	} else
 		return _log.errorRet(ProcessStatus::Nack,
-							 "Unknown movement status. Usage \"status\": \"need|done\"");
+		                     "Unknown movement status. Usage \"status\": \"need|done\"");
 
 	return ProcessStatus::Ack;
 }
@@ -72,7 +71,7 @@ GtcLogic::processAcceptRequest(const QJsonDocument &doc)
 		return _log.errorRet(ProcessStatus::Nack, "get accept message from" + svc);
 
 	_log.info("got accept message from " + svc + " flightId: "
-			  + flightId + " parkingId: " + parkingId);
+	          + flightId + " parkingId: " + parkingId);
 
 	auto &airplain = _airplains[flightId];
 	airplain.parkingId = parkingId;
@@ -81,7 +80,6 @@ GtcLogic::processAcceptRequest(const QJsonDocument &doc)
 		return _log.errorRet(ProcessStatus::Error, "fail to post service message");
 
 	return ProcessStatus::Ack;
-
 }
 
 GtcLogic::ProcessStatus
@@ -162,6 +160,10 @@ qint32 GtcLogic::checkConnection()
 qint32 GtcLogic::init(const QString &configPath)
 {
 	_log.info("init Gtc Logic");
+
+	if (auto r = _router.init(_env.graphPath))
+		return r;
+
 	QString jsonString;
 	QFile file;
 
@@ -191,45 +193,73 @@ qint32 GtcLogic::init(const QString &configPath)
 	return 0;
 }
 
-qint32 GtcLogic::readJsonConfig(const QJsonObject &credits)
+qint32 GtcLogic::readJsonConfig(const QJsonObject &data)
 {
-	auto hostnameObj = credits["hostname"];
-	auto vhostObj    = credits["vhost"];
-	auto userObj     = credits["username"];
-	auto passwdObj   = credits["password"];
+	if (auto r = readHostData(data))
+		return r;
+
+	if (auto r = readLogicSettings(data))
+		return r;
+
+	if (auto r = readClientData(data))
+		return r;
+
+	return 0;
+}
+
+qint32 GtcLogic::readHostData(const QJsonObject &data)
+{
+	auto hostnameObj = data["hostname"];
+	auto vhostObj    = data["vhost"];
+	auto userObj     = data["username"];
+	auto passwdObj   = data["password"];
+
 	if (hostnameObj.isUndefined() || vhostObj.isUndefined() ||
-			passwdObj.isUndefined() || userObj.isUndefined())
+	        passwdObj.isUndefined() || userObj.isUndefined())
 		return _log.errorRet(EINVAL, "some login credits are missing");
 
-	auto portObj = credits["port"];
+	auto portObj = data["port"];
 	if (portObj.isUndefined())
 		return _log.errorRet(EINVAL, "port not found");
-
-	auto exchangeObj   = credits["exchange"];
-	auto exchTypeObj   = credits["exchangeType"];
-	auto bindingKeyObj = credits["bindingKey"];
-	auto consumerObj   = credits["consumerName"];
-	if (exchangeObj.isUndefined() || exchTypeObj.isUndefined() ||
-			bindingKeyObj.isUndefined() || consumerObj.isUndefined())
-		return _log.errorRet(EINVAL, "some stream data are missing");
-
-	auto busInfo      = credits["busQueue"];
-	auto bagInfo      = credits["bagQueue"];
-	auto fuelInfo     = credits["fuelQueue"];
-	auto followMeInfo = credits["followMeQueue"];
-	if (busInfo.isUndefined() || bagInfo.isUndefined() ||
-			fuelInfo.isUndefined() || followMeInfo.isUndefined())
-		return _log.errorRet(EINVAL, "queues of machine servicies not define");
 
 	_hostname      = hostnameObj.toString();
 	_vhost         = vhostObj.toString();
 	_password      = passwdObj.toString();
 	_username      = userObj.toString();
+	_port          = portObj.toInt();
+
+	return 0;
+}
+
+qint32 GtcLogic::readLogicSettings(const QJsonObject &data)
+{
+	auto exchangeObj   = data["exchange"];
+	auto exchTypeObj   = data["exchangeType"];
+	auto bindingKeyObj = data["bindingKey"];
+	auto consumerObj   = data["consumerName"];
+
+	if (exchangeObj.isUndefined() || exchTypeObj.isUndefined() ||
+	        bindingKeyObj.isUndefined() || consumerObj.isUndefined())
+		return _log.errorRet(EINVAL, "some stream data are missing");
+
 	_exchange      = exchangeObj.toString();
 	_exchangeType  = exchTypeObj.toString();
 	_bindingKey    = bindingKeyObj.toString();
 	_consumerName  = consumerObj.toString();
-	_port          = portObj.toInt();
+
+	return 0;
+}
+
+qint32 GtcLogic::readClientData(const QJsonObject &data)
+{
+	auto busInfo      = data["busQueue"];
+	auto bagInfo      = data["bagQueue"];
+	auto fuelInfo     = data["fuelQueue"];
+	auto followMeInfo = data["followMeQueue"];
+
+	if (busInfo.isUndefined() || bagInfo.isUndefined() ||
+	        fuelInfo.isUndefined() || followMeInfo.isUndefined())
+		return _log.errorRet(EINVAL, "queues of machine servicies not define");
 
 	_env.busQueue      = busInfo.toString().toUtf8();
 	_env.bagQueue      = bagInfo.toString().toUtf8();
@@ -252,7 +282,7 @@ qint32 GtcLogic::open()
 
 	_log.info("login in " + _hostname);
 	_status = amqp_login(_env.connect, vhost.c_str(), 200, 131072, 0,
-						 AMQP_SASL_METHOD_PLAIN, user.c_str(), passwd.c_str());
+	                     AMQP_SASL_METHOD_PLAIN, user.c_str(), passwd.c_str());
 	if (_status.reply_type != AMQP_RESPONSE_NORMAL)
 		return _log.errorRet(EAGAIN, amqp_error_string(_status.reply_type));
 
@@ -290,13 +320,13 @@ qint32 GtcLogic::openMsgQueueStream()
 
 	_log.info("declaring exchange");
 	amqp_exchange_declare(_env.connect, 1, amqp_cstring_bytes(exch.c_str()),
-						  amqp_cstring_bytes(exchType.c_str()), 0, 1, 0, 0, amqp_empty_table);
+	                      amqp_cstring_bytes(exchType.c_str()), 0, 1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
 	_log.info("declaring queue");
 	auto r = amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(bindKey.c_str()),
-								0, 1, 0, 0, amqp_empty_table);
+	                            0, 1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
@@ -306,13 +336,13 @@ qint32 GtcLogic::openMsgQueueStream()
 
 	_log.info("bind queue");
 	amqp_queue_bind(_env.connect, 1, _env.queuename, amqp_cstring_bytes(exch.c_str()),
-					amqp_cstring_bytes(bindKey.c_str()), amqp_empty_table);
+	                amqp_cstring_bytes(bindKey.c_str()), amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
 	_log.info("create basic consume: " + _consumerName);
 	amqp_basic_consume(_env.connect, 1, _env.queuename, amqp_cstring_bytes(consumer.c_str()),
-					   1, 0, 0, amqp_empty_table);
+	                   1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
@@ -341,7 +371,7 @@ qint32 GtcLogic::process()
 	auto doc = QJsonDocument::fromJson(jsonMsg);
 	auto requestObj = doc["request"];
 	auto request = (!requestObj.isUndefined()) ? requestObj.toString()
-											   : QString();
+	                                           : QString();
 
 	ProcessStatus st;
 	if (request == _env.MovementRequest)

@@ -6,7 +6,7 @@
 #include <QJsonDocument>
 
 #include "env.h"
-#include "service.h"
+#include "airplain.h"
 #include "logger.h"
 
 class AmqpSender {
