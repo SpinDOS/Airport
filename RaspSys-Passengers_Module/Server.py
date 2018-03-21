@@ -43,23 +43,44 @@ def random_date(start, end):
 service_luggage_in_system = []
 @app.route('/generate_flight', methods=['GET', 'POST']) # args: flightID, pas, lug, serlug, arriving, extended, transportID - id рейса, количество пассажиров, количество багажа, количество служебного багажа, флаг "прилетающие", если не указан - прибывшие в аэропорт чтоб улететь, расширенная инфа
 def gen_flight():
-    if 'flightID' not in request.args.keys():
-        return '', 400
-
-    pas = request.args.get('pas', default = 20, type = int)
-    lug = request.args.get('lug', default = random.randint(12,17), type = int)
-    serlug = request.args.get('serlug', default = random.randint(0,4) , type = int)
-    arriving = request.args.get('arriving', default = False , type = bool)
-    flight = request.args.get('flightID')#, type = uuid)
-
-    if (pas < 0 or pas > 100 or serlug < 0 or serlug > 50 or lug < 0 or pas < lug):
-        return '', 400
-
-    transportID = None
-    if (arriving):
-        if 'transportID' not in request.args.keys():
+    if request.method == 'GET':
+        if 'flightID' not in request.args.keys():
             return '', 400
-        transportID = request.args.get('transportID')
+
+        pas = request.args.get('pas', default = 20, type = int)
+        lug = request.args.get('lug', default = random.randint(12,17), type = int)
+        serlug = request.args.get('serlug', default = random.randint(0,4) , type = int)
+        arriving = request.args.get('arriving', default = 'false', type = str) in ['True', 'true', '1']
+        flight = request.args.get('flightID')#, type = uuid)
+
+        if (pas < 0 or pas > 100 or serlug < 0 or serlug > 50 or lug < 0 or pas < lug):
+            return '', 400
+
+        transportID = None
+        if (arriving):
+            if 'transportID' not in request.args.keys():
+                return '', 400
+            transportID = request.args.get('transportID')
+    elif request.method == 'POST':
+        if 'flightID' not in request.json.keys():
+            return 'No flightID parameter', 400
+
+        pas = int(request.json['pas']) if 'pas' in request.json else 20
+        lug = int(request.json['lug']) if 'lug' in request.json else random.randint(12,17)
+        serlug = int(request.json['serlug']) if 'serlug' in request.json else random.randint(0,4)
+        arriving = True if 'arriving' in request.json and request.json['arriving'] in ['True', 'true', '1'] else False
+        flight = request.json['flightID']
+
+        if (pas < 0 or pas > 100 or serlug < 0 or serlug > 50 or lug < 0 or pas < lug):
+            return '', 400
+
+        transportID = None
+        if (arriving):
+            if 'transportID' not in request.json.keys():
+                return '', 400
+            transportID = request.json['transportID']
+    else:
+        return '', 405
 
     j = 0
     passengers = []
@@ -101,9 +122,7 @@ def gen_flight():
 
     if (not arriving):
         data = {'flight_id': flight, 'registration': 'kek', 'baggage_ids': all_luggage}
-        telelog(data)
         res = requests.post('http://dmitryshepelev15.pythonanywhere.com/api/baggage', json=data)
-        telelog(res.content)
 
 
     return jsonify({'passengers_count': pas, 'luggage_count': {'passengers': lug, 'service': serlug}, 'passengers': serialized_passengers, 'service_luggage': service_luggage})
@@ -132,7 +151,7 @@ def notify_luggage():
     db.session.query(Passenger).filter_by(Passenger.in_(passengers_recevied_bags)).delete()
     db.session.commit()
     # сообщить диману о том что багаж забрали
-    requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage', json={'ids': recevied_bags})
+    requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage/delete', json=recevied_bags)
     return '', 200
 
 @app.route('/passengers', methods=['POST','GET','DELETE'])
@@ -141,7 +160,6 @@ def passengers_api():
         try:
             if 'flight' in request.args.keys():
                 fid = request.args['flight']
-                telelog(1)
                 res = db.session.query(Passenger).filter(Passenger.flight == fid).all()
             elif 'id' in request.args.keys():
                 id = request.args['id']
@@ -214,14 +232,14 @@ def boarding(transport):
             flightId = request.json['flightID'].lower() if 'flightID' in request.json else None
             seats = request.json['seats'] if 'seats' in request.json else -1
             ids = request.json['ids'] if 'ids' in request.json else ([request.json['id']] if 'id' in request.json else [])
+            continious = True if 'continious' in request.json and request.json['continious'] in ['True', 'true', '1'] else False
         else:
             transportId = request.args['transportID'].lower() if 'transportID' in request.args.keys() else None
             flightId = request.args['flightID'].lower() if 'flightID' in request.args.keys() else None
             seats = request.args['seats'] if 'seats' in request.args.keys() else -1
             ids = request.args['ids'].split(',') if 'ids' in request.args.keys() else ([request.args['id']] if 'id' in request.args.keys() else [])
-            telelog(transportId)
-            telelog(seats)
-        return boardinglanding('boarding', transport, ids, transportId, seats, flightId)
+            continious = True if 'continious' in request.args and request.args['continious'] in ['True', 'true', '1'] else False
+        return boardinglanding('boarding', transport, ids, transportId, seats, flightId, continious)
     return 405
 
 @app.route('/landing/<transport>', methods=['POST','GET'])
@@ -236,11 +254,9 @@ def landing(transport):
         return boardinglanding('landing', transport, ids, transportId)
     return 405
 
-def boardinglanding(action, transport, ids, tid = None, seats = -1, fid = None):
+def boardinglanding(action, transport, ids, tid = None, seats = -1, fid = None , continious = False):
     if tid is not None:
-        telelog('kek')
         if action == 'boarding':
-            telelog(fid)
             needState = 'WaitForBus' if transport == 'bus' else 'WaitForAirplane'
             ids = db.session.query(Passenger).filter(Passenger.state == needState).filter(Passenger.flight == fid).filter(Passenger.transport == None)
             if seats != -1:

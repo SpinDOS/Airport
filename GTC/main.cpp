@@ -1,4 +1,6 @@
 #include <QCoreApplication>
+#include <QTime>
+
 #include <signal.h>
 #include "gtc.h"
 
@@ -41,7 +43,8 @@ void start()
 				state = GtcState::Reopening;
 			break;
 		case GtcState::Reopening:
-			qWarning() << "[WARNING] GTC move to Reopening state";
+			qWarning() << QTime::currentTime().toString("hh:mm:ss")
+					   << "[SYSTEM] GTC move to Reopening state";
 			gtc.close();
 			state = GtcState::Opening;
 			break;
@@ -58,7 +61,9 @@ void start()
 
 void shutdown_handler(int)
 {
-	qDebug() << "\n[INFO] Receive termination signal";
+	qDebug() << "";
+	qDebug() << QTime::currentTime().toString("hh:mm:ss")
+			 << "[SYSTEM] Receive termination signal";
 	if (::state != GtcState::Init && ::state != GtcState::Closed) {
 		gtc.close();
 		gtc.destroy();
@@ -83,10 +88,19 @@ int main(int argc, char* argv[])
 	shutdown.sa_handler = &shutdown_handler;
 
 	if (sigaction(SIGINT, &shutdown, NULL)) {
-		qWarning() << "[WARNING] fail subscribe on SIGINT";
+		qWarning() << QTime::currentTime().toString("hh:mm:ss")
+				   << "[SYSTEM] fail subscribe on SIGINT";
 		exit(EXIT_FAILURE);
 	}
 
 	start();
 	return 0;
 }
+
+/*
+foreach (const auto &a, _airplains) {
+	qDebug() << "Airplain" << a.parkingId << "state" << (int)a.state;
+	qDebug() << "BusUnload" << a.isBusUnload << "BaggageUnload" << a.isBaggageUnload;
+	qDebug() << "BusLoad" << a.isBusLoad<< "BaggageLoad" << a.isBaggageLoad;
+}
+*/

@@ -7,6 +7,8 @@
 #include "service.h"
 #include "env.h"
 #include "amqp_sender.h"
+#include "logger.h"
+
 
 class GtcLogic {
 	enum class ProcessStatus {
@@ -16,6 +18,7 @@ class GtcLogic {
 		Error
 	};
 
+	Logger _log {"Gtc"};
 	Environment _env;
 	AmqpSender  _sender;
 
