@@ -148,7 +148,7 @@ class BaggageCar:
     def unload_airplane(self, flight_id, parking_id, gate_id):
         log_message(f'Start unload airplane with {flight_id}')
         content = json.loads(requests.get(f'{AIRPLANE_API}/info?landingFlightId={flight_id}').content.decode())
-        airplane_baggage_count = content['baggageCount']
+        airplane_baggage_count = content[0]['baggageCount']
         if airplane_baggage_count == 0:
             return
 
