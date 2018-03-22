@@ -2,7 +2,7 @@ import { LogicalError } from "../errors/logicalError";
 
 export function True(test: boolean, errorMessage?: string): void {
   if (!test) {
-    throw new LogicalError(errorMessage);
+    throw new LogicalError(errorMessage || "Assertion error");
   }
 }
 

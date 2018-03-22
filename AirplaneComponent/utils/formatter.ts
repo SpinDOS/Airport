@@ -10,7 +10,7 @@ export function guid(x: Guid): string {
   return x.toString().toUpperCase();
 }
 
-export function id(x: Guid): string {
+function id(x: Guid): string {
   return `(id: ${guid(x)})`;
 }
 
@@ -42,7 +42,7 @@ export function error(err: any, sourceText?: string): string {
   }
 
   if (err instanceof ValidationError) {
-    err.sourceText = sourceText;
+    err.sourceText = err.sourceText || sourceText;
   }
 
   let str: string = err.stack || err.toString();

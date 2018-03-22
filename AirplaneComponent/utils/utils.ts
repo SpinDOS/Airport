@@ -21,12 +21,17 @@ export function isPositiveInt(n: any): boolean {
 }
 
 export function strToPOCO(data: any): object {
-  if (!isNotEmptyString(data)) {
+  if (typeof data === "object") {
     return data;
   }
+
+  if (!isNotEmptyString(data)) {
+    throw new ValidationError("JSON not found");
+  }
+
   try {
     return JSON.parse(data);
-  } catch (err) {
-    throw new ValidationError("Json response expected. Got " + data);
+  } catch {
+    throw new ValidationError(`JSON expected. Got ${data}`);
   }
 }
