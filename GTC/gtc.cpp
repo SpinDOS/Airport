@@ -74,9 +74,9 @@ GtcLogic::processAcceptRequest(const QJsonDocument &doc)
 	          + flightId + " parkingId: " + parkingId);
 
 	auto &airplain = _airplains[flightId];
-	airplain.parkingId = parkingId;
+	airplain.setParkingId(parkingId);
 
-	if (_sender.postServiceMsg(airplain.state, flightId, parkingId))
+	if (_sender.postServiceMsg(airplain.state(), flightId, parkingId))
 		return _log.errorRet(ProcessStatus::Error, "fail to post service message");
 
 	return ProcessStatus::Ack;
@@ -100,49 +100,19 @@ GtcLogic::processMaintainRequest(const QJsonDocument &doc)
 		return _log.errorRet(ProcessStatus::Nack, "airplain not found");
 
 	_log.info("got maintain message from " + svc + " flightId: " + flightId);
-	Airplain::State current = airplain->state;
-	Airplain::State next = Airplain::State::Away;
-	switch (current) {
-	case Airplain::State::Unloading:
-		if (svc == "bus")
-			airplain->isBusUnload = true;
-		else if (svc == "baggage")
-			airplain->isBaggageUnload = true;
-		else
-			return _log.errorRet(ProcessStatus::Nack, "outside the queue " + svc);
-		next = airplain->nextState();
-		break;
-	case Airplain::State::Fueling:
-		if (svc != "fuel")
-			return _log.errorRet(ProcessStatus::Nack, "outside the queue " + svc);
-		next = airplain->nextState();
-		break;
-	case Airplain::State::Loading:
-		if (svc == "bus")
-			airplain->isBusLoad = true;
-		else if (svc == "baggage")
-			airplain->isBaggageLoad = true;
-		else
-			return _log.errorRet(ProcessStatus::Nack, "outside the queue " + svc);
-		next = airplain->nextState();
-		break;
-	case Airplain::State::Departure:
-		if (svc != "follow_me")
-			return _log.errorRet(ProcessStatus::Nack, "outside the queue " + svc);
-		next = airplain->nextState();
-		break;
-	default:
-		break;
-	}
+	Airplain::State current = airplain->state();
+	Airplain::State next = airplain->maintain(svc);
 
 	if (next == Airplain::State::Away) {
 		_log.info("Airplain " + flightId + " away");
 		_airplains.erase(airplain);
 		return ProcessStatus::Ack;
-	} else if (next == current)
+	}
+
+	if (next == current)
 		return ProcessStatus::Ack;
 
-	if (_sender.postServiceMsg(next, flightId, airplain->parkingId))
+	if (_sender.postServiceMsg(next, flightId, airplain->getParkingId()))
 		return _log.errorRet(ProcessStatus::Error, "fail post service message");
 
 	return ProcessStatus::Ack;
@@ -153,6 +123,22 @@ qint32 GtcLogic::checkConnection()
 	_status = amqp_get_rpc_reply(_env.connect);
 	if (_status.reply_type != AMQP_RESPONSE_NORMAL)
 		return _log.errorRet(-1, amqp_error_string(_status.reply_type));
+
+	return 0;
+}
+
+qint32 GtcLogic::checkResponse(amqp_response_type_enum replyType)
+{
+	switch (replyType) {
+	case AMQP_RESPONSE_NONE:
+		return _log.errorRet(EAGAIN, "got EOF from socket");
+	case AMQP_RESPONSE_LIBRARY_EXCEPTION:
+		return _log.errorRet(EAGAIN, "unknown library exception");
+	case AMQP_RESPONSE_SERVER_EXCEPTION:
+		return _log.errorRet(EAGAIN, "server exception");
+	default:
+		break;
+	}
 
 	return 0;
 }
@@ -355,16 +341,8 @@ qint32 GtcLogic::process()
 	amqp_maybe_release_buffers(_env.connect);
 
 	_status = amqp_consume_message(_env.connect, &envelope, NULL, 0);
-	switch (_status.reply_type) {
-	case AMQP_RESPONSE_NONE:
-		return _log.errorRet(EAGAIN, "got EOF from socket");
-	case AMQP_RESPONSE_LIBRARY_EXCEPTION:
-		return _log.errorRet(EAGAIN, "unknown library exception");
-	case AMQP_RESPONSE_SERVER_EXCEPTION:
-		return _log.errorRet(EAGAIN, "server exception");
-	default:
-		break;
-	}
+	if (auto r = checkResponse(_status.reply_type))
+		return r;
 
 	char *bytes = static_cast<char *>(envelope.message.body.bytes);
 	QByteArray jsonMsg(bytes, envelope.message.body.len);
@@ -393,11 +371,11 @@ qint32 GtcLogic::process()
 		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, true);
 		break;
 	case ProcessStatus::Nack:
-		_log.info("bad json data");
+		_log.warn("bad json data");
 		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, false);
 		break;
 	case ProcessStatus::Error:
-		_log.info("fail to process " + request + " message");
+		_log.error("fail to process " + request + " message");
 		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, true);
 		break;
 	}

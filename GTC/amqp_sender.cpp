@@ -4,14 +4,15 @@ AmqpSender::AmqpSender(const Environment &e)
 	: _env(e)
 {
 	_post_prop._flags = AMQP_BASIC_CONTENT_ENCODING_FLAG |
-				  AMQP_BASIC_CONTENT_TYPE_FLAG |
-				  AMQP_BASIC_DELIVERY_MODE_FLAG |
-				  AMQP_BASIC_REPLY_TO_FLAG;
+	                    AMQP_BASIC_CONTENT_TYPE_FLAG |
+	                    AMQP_BASIC_DELIVERY_MODE_FLAG |
+	                    AMQP_BASIC_REPLY_TO_FLAG;
+
 	_post_prop.content_encoding = amqp_cstring_bytes(_env.contentEncoding.constData());
 	_post_prop.content_type = amqp_cstring_bytes(_env.contentType.constData());
 	_post_prop.delivery_mode = 2;
 }
-
+#include <cstdio>
 qint32 AmqpSender::postMovementMsg(const QString &src, const QString &dst,
                                    const QString &svc, const amqp_basic_properties_t *prop)
 {
@@ -25,7 +26,6 @@ qint32 AmqpSender::postMovementMsg(const QString &src, const QString &dst,
 	QByteArray data(doc.toJson(QJsonDocument::Compact));
 
 	_log.info("post movement message to " + svc);
-
 	auto r = publish(prop->reply_to, prop, data);
 
 	return (r == AMQP_STATUS_OK) ? 0 : -1;

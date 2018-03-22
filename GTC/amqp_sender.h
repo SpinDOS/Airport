@@ -10,7 +10,7 @@
 #include "logger.h"
 
 class AmqpSender {
-	Logger _log {"Sender"};
+	Logger _log {"Sender  "};
 
 	amqp_basic_properties_t _post_prop;
 	const Environment &_env;

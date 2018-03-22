@@ -40,11 +40,11 @@ class GtcLogic {
 	qint32 readLogicSettings(const QJsonObject &data);
 	qint32 readClientData(const QJsonObject &data);
 
-
 	qint32 openTcpSocket();
 	qint32 openMsgQueueStream();
 
 	qint32 checkConnection();
+	qint32 checkResponse(amqp_response_type_enum replyType);
 
 	ProcessStatus processMovementRequest(const QJsonDocument &doc, const amqp_basic_properties_t *prop);
 	ProcessStatus processAcceptRequest(const QJsonDocument &doc);

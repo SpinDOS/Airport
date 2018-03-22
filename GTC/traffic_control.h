@@ -10,12 +10,14 @@
 
 class TrafficControl {
 
-	Logger _log {"TrafficControl"};
+	Logger _log {"Router  "};
 
 	struct Node {
 		qint8 busy = 0;
 		QVector<qint32> route;
 	};
+
+	const QString EmptyVertex = QString();
 
 	QMap<QString, qint32> _map;
 	QMap<qint32, QString> _mirrorMap;
@@ -26,7 +28,7 @@ class TrafficControl {
 
 public:
 	qint32 init(const QString &path);
-	QString moveTo(const QString &src, const QString &dst);
+	const QString &moveTo(const QString &src, const QString &dst);
 
 	void lock(const QString &src, const QString &dst);
 	void unlock(const QString &src);

@@ -39,7 +39,8 @@ qint32 TrafficControl::init(const QString &path)
 	return 0;
 }
 
-QString TrafficControl::moveTo(const QString &src, const QString &dst)
+const QString &
+TrafficControl::moveTo(const QString &src, const QString &dst)
 {
 	qint32 srcId = _map[src];
 	qint32 dstId = _map[dst];
@@ -66,7 +67,7 @@ QString TrafficControl::moveTo(const QString &src, const QString &dst)
 
 	if (!used[dstId]) {
 		_log.warn("no path found from: " + src + " to: " + dst);
-		return QString();
+		return EmptyVertex;
 	}
 
 	qint32 nextId = -1;
@@ -75,7 +76,7 @@ QString TrafficControl::moveTo(const QString &src, const QString &dst)
 			nextId = v;
 
 	if (_adj[nextId].busy)
-		return QString();
+		return EmptyVertex;
 
 	return _mirrorMap[nextId];
 }

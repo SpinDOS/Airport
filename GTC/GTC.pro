@@ -11,7 +11,8 @@ CONFIG -= app_bundle
 SOURCES += main.cpp \
 	gtc.cpp \
     amqp_sender.cpp \
-    traffic_control.cpp
+    traffic_control.cpp \
+    airplain.cpp
 
 
 unix:!macx: LIBS += -L$$PWD/lib/ -lrabbitmq
