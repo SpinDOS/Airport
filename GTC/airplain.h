@@ -1,5 +1,5 @@
-#ifndef SERVICE_H
-#define SERVICE_H
+#ifndef AIRPLAIN_H
+#define AIRPLAIN_H
 
 #include <QObject>
 
@@ -45,4 +45,4 @@ struct Airplain {
 
 
 
-#endif // SERVICE_H
+#endif // AIRPLAIN_H

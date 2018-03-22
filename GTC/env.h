@@ -32,7 +32,9 @@ struct Environment {
 
 	QByteArray busQueue, bagQueue, followMeQueue, fuelQueue;
 
-	const QByteArray contentType = "json";
+	const QString graphPath = "config/ways.txt";
+
+	const QByteArray contentType     = "json";
 	const QByteArray contentEncoding = "utf8";
 };
 

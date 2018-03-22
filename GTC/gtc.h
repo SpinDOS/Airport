@@ -4,11 +4,11 @@
 #include <QDebug>
 #include <QHash>
 
-#include "service.h"
+#include "airplain.h"
 #include "env.h"
 #include "amqp_sender.h"
 #include "logger.h"
-
+#include "traffic_control.h"
 
 class GtcLogic {
 	enum class ProcessStatus {
@@ -21,6 +21,7 @@ class GtcLogic {
 	Logger _log {"Gtc"};
 	Environment _env;
 	AmqpSender  _sender;
+	TrafficControl _router;
 
 	QHash<QString, Airplain> _airplains;
 
@@ -34,7 +35,11 @@ class GtcLogic {
 	QString _bindingKey;
 	QString _consumerName;
 
-	qint32 readJsonConfig(const QJsonObject &credits);
+	qint32 readJsonConfig(const QJsonObject &data);
+	qint32 readHostData(const QJsonObject &data);
+	qint32 readLogicSettings(const QJsonObject &data);
+	qint32 readClientData(const QJsonObject &data);
+
 
 	qint32 openTcpSocket();
 	qint32 openMsgQueueStream();
