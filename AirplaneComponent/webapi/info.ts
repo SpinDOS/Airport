@@ -1,15 +1,17 @@
 import Router, { IRouterContext } from "koa-router";
 import { Guid } from "guid-typescript";
-import { IQueryParams, validateInfoQueryParams } from "../model/validation/infoQueryParams";
-import { IAirplane } from "../model/airplane";
+
 import * as airplanePool from "../airPlanePool";
+
+import { IInfoQueryParams, validateInfoQueryParams } from "../model/validation/infoQueryParams";
+import { IAirplane } from "../model/airplane";
 
 export function register(router: Router): void {
   router.get("/info", info);
 }
 
 function info(ctx: IRouterContext): void {
-  let params: IQueryParams = validateInfoQueryParams(ctx.request.query);
+  let params: IInfoQueryParams = validateInfoQueryParams(ctx.request.query);
   let result: IAirplane[] = airplanesArray().filter(createFilter(params));
   ctx.body = JSON.stringify(result.map(format));
 }
@@ -30,7 +32,7 @@ function format(airplane: IAirplane): object {
   };
 }
 
-function createFilter(params: IQueryParams): (airplane: IAirplane) => boolean {
+function createFilter(params: IInfoQueryParams): (airplane: IAirplane) => boolean {
   return function(airplane: IAirplane): boolean {
     if (params.id && !params.id.equals(airplane.id)) {
       return false;
@@ -38,10 +40,10 @@ function createFilter(params: IQueryParams): (airplane: IAirplane) => boolean {
       return false;
     } else if (params.departureFlightId && !params.departureFlightId.equals(airplane.departureFlight.id)) {
       return false;
-    } else {
-      return !params.parkingId ||
-        airplane.status.additionalInfo.parkingId === params.parkingId;
+    } else if (params.parkingId && params.parkingId !== airplane.status.additionalInfo.parkingId) {
+      return false;
     }
+    return true;
   };
 }
 
