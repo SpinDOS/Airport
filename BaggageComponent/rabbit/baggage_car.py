@@ -2,9 +2,11 @@ import json
 import pika
 import requests
 import time
+import threading
 from uuid import uuid4
 
 from BaggageComponent.rabbit.utils import (
+    get_channel,
     log_message,
     validate_response,
 )
@@ -21,33 +23,34 @@ from BaggageComponent.rabbit.config import (
 
 
 class BaggageCar:
-    BAGGAGE_CAPACIRY = 10
-    BAGGAGE_GARAGE = 'BaggageGarage|1'
+    BAGGAGE_CAPACITY = 10
+    BAGGAGE_GARAGE = 'BaggageGarage'
 
-    def __init__(self, capacity=BAGGAGE_CAPACIRY):
+    def __init__(self, capacity=BAGGAGE_CAPACITY):
         self.id = str(uuid4())
         self.location = self.BAGGAGE_GARAGE
         self.baggage_list = []
         self.callback_response = None
         self.baggage_capacity = capacity
 
-        # credentials = pika.PlainCredentials('user', 'password')
-        # parameters = pika.ConnectionParameters('IP here', 5672, '/', credentials)
-        # connection = pika.BlockingConnection(parameters)
-        self.connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
-        self.channel = self.connection.channel()
+        self.channel = get_channel()
 
         self.baggage_queue = self.channel.queue_declare(queue=BAGGAGE_QUEUE, durable=True)
-        self.channel.basic_consume(self.handle_query, queue=BAGGAGE_QUEUE)
+        self.channel.basic_consume(self.handle_query, queue=BAGGAGE_QUEUE, no_ack=False)
 
         self.channel.queue_declare(queue=VISUALIZER_QUEUE, durable=True)
         self.init_visualizer()
 
         self.channel.exchange_declare(exchange=UND_EXCHANGE, exchange_type='direct', durable=True)
-        queue = self.channel.queue_declare(exclusive=True)
-        self.callback_queue = queue.method.queue
-        self.channel.basic_consume(self.get_callback_response, queue=self.callback_queue, no_ack=True)
+        self.channel.queue_declare(queue=AIRPLANE_QUEUE, durable=True)
         self.channel.basic_qos(prefetch_count=1)
+
+    def consume_reply_to(self):
+        channel = get_channel()
+        queue = channel.queue_declare(exclusive=False)
+        self.callback_queue = queue.method.queue
+        channel.basic_consume(self.get_callback_response, queue=self.callback_queue, no_ack=True)
+        channel.start_consuming()
 
     def init_visualizer(self):
         init_message = {
@@ -63,9 +66,12 @@ class BaggageCar:
                                    body=json.dumps(init_message))
 
     def run(self):
+        thread = threading.Thread(target=self.consume_reply_to)
+        thread.start()
         self.channel.start_consuming()
 
     def get_callback_response(self, ch, method, props, body):
+        log_message(f'Got message in callback response {body}')
         if self.id == props.correlation_id:
             self.callback_response = json.loads(body.decode())
 
@@ -76,7 +82,8 @@ class BaggageCar:
             "service": "baggage",
             "request": "movement",
             "from": self.location,
-            "to": location_to
+            "to": location_to,
+            "status": "need"
         }
         self.channel.basic_publish(exchange=UND_EXCHANGE,
                                    routing_key=UND_ROUTING_KEY,
@@ -88,7 +95,7 @@ class BaggageCar:
                                    body=json.dumps(params))
 
         while self.callback_response is None:
-            self.connection.process_data_events()
+            time.sleep(0.01)
 
         validate_response(self.callback_response, ["service", "request", "from", "to"])
         log_message(f'got from und message: service {self.callback_response["service"]}, '
@@ -113,41 +120,48 @@ class BaggageCar:
             self.require_route(location_to)
 
     def handle_query(self, ch, method, props, body):
-        params = json.loads(body.decode())
-        validate_response(params, ["action", "request", "service", "gate_id", "flight_id", "parking_id"])
+        try:
+            params = json.loads(body.decode())
+            validate_response(params, ["action", "request", "service", "gate_id", "flight_id", "parking_id"])
 
-        action = params['action']
-        flight_id = params['flight_id']
-        gate_id = params['gate_id']
-        parking_id = params['parking_id']
-        log_message(f'Got from UND new task: action {action}, flight_id {flight_id}, parking_id {parking_id}')
+            action = params['action']
+            flight_id = params['flight_id']
+            gate_id = params['gate_id']
+            parking_id = params['parking_id']
+            log_message(f'Got from UND new task: action {action}, flight_id {flight_id}, parking_id {parking_id}')
 
-        if action == 'load':
-            self.load_airplane(flight_id, parking_id, gate_id)
-        elif action == 'unload':
-            self.unload_airplane(flight_id, parking_id, gate_id)
-        else:
-            raise Exception('Error. Unknown action')
+            if action == 'load':
+                self.load_airplane(flight_id, parking_id, gate_id)
+            elif action == 'unload':
+                self.unload_airplane(flight_id, parking_id, gate_id)
+            else:
+                raise Exception('Error. Unknown action')
 
-        params = {
-            "service": "baggage",
-            "request": "maintain",
-            "flight_id": flight_id,
-        }
-        self.channel.basic_publish(exchange=UND_EXCHANGE,
-                                   routing_key=UND_ROUTING_KEY,
-                                   properties=pika.BasicProperties(
-                                       content_type='json',
-                                   ),
-                                   body=json.dumps(params))
-        ch.basic_ack(delivery_tag=method.delivery_tag)
+            params = {
+                "service": "baggage",
+                "request": "maintain",
+                "flight_id": flight_id,
+            }
+            self.channel.basic_publish(exchange=UND_EXCHANGE,
+                                       routing_key=UND_ROUTING_KEY,
+                                       properties=pika.BasicProperties(
+                                           content_type='json',
+                                       ),
+                                       body=json.dumps(params))
 
-        if self.baggage_queue.method.message_count == 0:
-            self.require_route(self.BAGGAGE_GARAGE)
+        except Exception as e:
+            print(e)
+        finally:
+            ch.basic_ack(delivery_tag=method.delivery_tag)
+
+            print(self.baggage_queue.method.message_count)
+            if self.baggage_queue.method.message_count == 0:
+                self.require_route(self.BAGGAGE_GARAGE)
 
     def unload_airplane(self, flight_id, parking_id, gate_id):
         log_message(f'Start unload airplane with {flight_id}')
         content = json.loads(requests.get(f'{AIRPLANE_API}/info?landingFlightId={flight_id}').content.decode())
+        log_message(f'Got response from airplane {content}')
         airplane_baggage_count = content[0]['baggageCount']
         if airplane_baggage_count == 0:
             return
@@ -170,11 +184,11 @@ class BaggageCar:
                                    ),
                                    body=json.dumps(params))
         while self.callback_response is None:
-            self.connection.process_data_events()
+            time.sleep(0.01)
 
-        validate_response(self.callback_response, ["baggages"])
-        self.baggage_list = self.callback_response["baggages"]
-        self.callback_response = []
+        validate_response(self.callback_response, ["baggage"])
+        self.baggage_list = self.callback_response["baggage"]
+        self.callback_response = None
 
         log_message(f'Got baggage list from airplane {self.baggage_list}')
 
@@ -186,7 +200,7 @@ class BaggageCar:
 
         requests.post(f'{BAGGAGE_API}/api/baggage', json=params)
 
-        # TODO animation
+        self.animate_loading()
 
         params = {
             "luggage": self.baggage_list
@@ -235,7 +249,7 @@ class BaggageCar:
                                    ),
                                    body=json.dumps(params))
         while self.callback_response is None:
-            self.connection.process_data_events()
+            time.sleep(0.01)
 
         validate_response(self.callback_response, ["result"])
         if self.callback_response["response"] != "ok":
@@ -263,6 +277,21 @@ class BaggageCar:
                                    body=json.dumps(message))
         time.sleep(duration)
         log_message(f'send message to visualiser from {location_from} to {location_to}')
+
+    def animate_loading(self):
+        duration = 5
+        message = {
+            'Type': 'animation',
+            'AnimationType': 'baggage',
+            'Transport': f'Baggage|{self.id}',
+            'Duration': duration * 1000,
+        }
+
+        self.channel.basic_publish(exchange='',
+                                   routing_key=VISUALIZER_QUEUE,
+                                   properties=pika.BasicProperties(content_type='json'),
+                                   body=json.dumps(message))
+        time.sleep(duration)
 
 
 def main():

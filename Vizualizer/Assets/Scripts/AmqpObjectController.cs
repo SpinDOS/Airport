@@ -29,6 +29,8 @@ namespace CymaticLabs.Unity3D.Amqp
         public Dictionary<string, MovementScript> FollowMes = new Dictionary<string, MovementScript>();
         public Dictionary<string, MovementScript> Fuels = new Dictionary<string, MovementScript>();
 
+        public RadialProgressBarScript CanvasRadialProgressBarPrefab;
+
         void Start()
         {
             var queue = new AmqpQueueSubscription(QueueName, false, HandleQueueMessageReceived);
@@ -39,8 +41,8 @@ namespace CymaticLabs.Unity3D.Amqp
             _busGarage = Map.GetLocation("BusGarage").Value;
             _followMeGarage = Map.GetLocation("FollowMeGarage").Value;
             _fuelGarage = Map.GetLocation("FuelGarage").Value;
-
         }
+
 
         /**
          * Handles messages receieved from this object's subscription based on the exchange name,
@@ -255,12 +257,12 @@ namespace CymaticLabs.Unity3D.Amqp
 
             var type = msg["AnimationType"] != null ? msg["AnimationType"].Value : Undefined;
 
-            switch(type)
+            DebugMessage(string.Format("Get {0} animation message", type));
+            switch (type)
             {
                 case "touchdown":
                 case "wheelsup":
                     {
-                        DebugMessage(string.Format("Get {0} animation message", type));
                         if (transportArray[0] != "Aircraft")
                         {
                             DebugMessage("Expected aircraft transport type");
@@ -310,7 +312,76 @@ namespace CymaticLabs.Unity3D.Amqp
                         }
                         break;
                     }
-                    
+                case "baggage":
+                    {
+                        if (transportArray[0] != "Baggage")
+                        {
+                            DebugMessage("Expected baggage transport type");
+                            return;
+                        }
+
+                        if (!Baggages.ContainsKey(transportArray[1]))
+                        {
+                            DebugMessage(string.Format("Unknown id of transport: \"{0}\"", transportArray[1]));
+                            return;
+                        }
+
+                        var baggage = Baggages[transportArray[1]];
+                        var speed = 100000 / duration;
+
+                        var progressBar = Instantiate(CanvasRadialProgressBarPrefab, baggage.transform.position, new Quaternion());
+                        progressBar.Speed = speed;
+
+                        break;
+                    }
+                case "passengers":
+                    {
+                        if (transportArray[0] != "Bus")
+                        {
+                            DebugMessage("Expected bus transport type");
+                            return;
+                        }
+
+                        if (!Buses.ContainsKey(transportArray[1]))
+                        {
+                            DebugMessage(string.Format("Unknown id of transport: \"{0}\"", transportArray[1]));
+                            return;
+                        }
+
+                        var bus = Buses[transportArray[1]];
+                        var speed = 100000 / duration;
+
+                        var progressBar = Instantiate(CanvasRadialProgressBarPrefab, bus.transform.position, new Quaternion());
+                        progressBar.Speed = speed;
+
+                        break;
+                    }
+                case "filling":
+                    {
+                        {
+                            if (transportArray[0] != "Fuel")
+                            {
+                                DebugMessage("Expected bus transport type");
+                                return;
+                            }
+
+                            if (!Fuels.ContainsKey(transportArray[1]))
+                            {
+                                DebugMessage(string.Format("Unknown id of transport: \"{0}\"", transportArray[1]));
+                                return;
+                            }
+
+                            var fuel = Fuels[transportArray[1]];
+                            var speed = 100000 / duration;
+
+                            Debug.Log(string.Format("fuel.transform.position: {0}", fuel.transform.position));
+                            var progressBar = Instantiate(CanvasRadialProgressBarPrefab, fuel.transform.position, new Quaternion());
+                            progressBar.Speed = speed;
+                            progressBar.GetComponent<RectTransform>().position = fuel.transform.position;
+
+                            break;
+                        }
+                    }
                 default:
                     DebugMessage(string.Format("Can not reconize animation type: \"{0}\"", type));
                     break;
