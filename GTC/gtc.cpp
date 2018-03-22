@@ -40,7 +40,7 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 			return ProcessStatus::Retry;
 		if (_sender.postMovementMsg(src, nextLoc, svc, prop))
 			return ProcessStatus::Error;
-		_router.lock(src, dst);
+		_router.lock(src, nextLoc);
 	} else if (stat == _env.DoneMovement) {
 		_router.unlock(src);
 	} else

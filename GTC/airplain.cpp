@@ -11,7 +11,7 @@ Airplain::State Airplain::maintain(const QString &svc)
 			_isBaggageUnload = true;
 
 		if (_isBusUnload && _isBaggageUnload)
-			_state = State::Departure;
+			_state = State::Fueling;
 		break;
 
 	case State::Fueling:

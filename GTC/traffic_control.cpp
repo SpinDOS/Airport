@@ -72,7 +72,7 @@ TrafficControl::moveTo(const QString &src, const QString &dst)
 
 	qint32 nextId = -1;
 	for (qint32 v = dstId; v != -1; v = parents[v])
-		if (parents[v] == -1)
+		if (parents[v] == srcId)
 			nextId = v;
 
 	if (_adj[nextId].busy)
