@@ -33,14 +33,14 @@ export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
   let fuel: number = randomFuel(airplaneModel.maxFuel);
 
   let airplaneId: Guid = Guid.create();
-  let pasAndBag: PasAndBag = await generatePasAndBagFromAPI(airplaneId, createReq.landingFlightReq);
+  let pasAndBag: PasAndBag = await generatePasAndBagFromAPI(airplaneId, createReq.landingFlight);
 
   let airplane: IAirplane = {
     id: airplaneId,
     model: airplaneModel,
 
     landingFlight: createLandingFlight(createReq, pasAndBag),
-    departureFlight: new LazyFlight(createReq.departureFlightReq.id, createReq.departureFlightReq.code),
+    departureFlight: new LazyFlight(createReq.departureFlight.id, createReq.departureFlight.code),
 
     fuel: fuel,
 
@@ -60,10 +60,10 @@ export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
 
 function randomModel(createReq: IAirplaneCreateReq): IAirplaneModel {
   let passengersCount: number =
-    Math.max(createReq.landingFlightReq.passengersCount, createReq.departureFlightReq.passengersCount);
+    Math.max(createReq.landingFlight.passengersCount, createReq.departureFlight.passengersCount);
   let baggageCount: number = Math.max(
-    createReq.landingFlightReq.passengersCount + createReq.landingFlightReq.serviceBaggageCount,
-    createReq.departureFlightReq.passengersCount + createReq.departureFlightReq.serviceBaggageCount);
+    createReq.landingFlight.passengersCount + createReq.landingFlight.serviceBaggageCount,
+    createReq.departureFlight.passengersCount + createReq.departureFlight.serviceBaggageCount);
 
   return generateRandomModel(passengersCount, baggageCount);
 }
@@ -121,8 +121,8 @@ function parseResponse(data: any): PasAndBag {
 function createLandingFlight(createReq: IAirplaneCreateReq,
   pasAndBag: PasAndBag): IFlight {
   return {
-    id: createReq.landingFlightReq.id,
-    code: createReq.landingFlightReq.code,
+    id: createReq.landingFlight.id,
+    code: createReq.landingFlight.code,
     passengersCount: pasAndBag.passengers.length,
     baggageCount: pasAndBag.baggage.length
   };

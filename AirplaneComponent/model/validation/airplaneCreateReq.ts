@@ -40,8 +40,8 @@ export function validateFlightReq(flight: any): IFLightReq {
 }
 
 export interface IAirplaneCreateReq {
-  landingFlightReq: IFLightReq;
-  departureFlightReq: IFLightReq;
+  landingFlight: IFLightReq;
+  departureFlight: IFLightReq;
 }
 
 export function validateAirplaneCreateReq(airplaneCreateParams: IAirplaneCreateReq): IAirplaneCreateReq {
@@ -50,7 +50,7 @@ export function validateAirplaneCreateReq(airplaneCreateParams: IAirplaneCreateR
   }
 
   return {
-    landingFlightReq: validateFlightReq(airplaneCreateParams.landingFlightReq),
-    departureFlightReq: validateFlightReq(airplaneCreateParams.departureFlightReq),
+    landingFlight: validateFlightReq(airplaneCreateParams.landingFlight),
+    departureFlight: validateFlightReq(airplaneCreateParams.departureFlight),
   };
 }
