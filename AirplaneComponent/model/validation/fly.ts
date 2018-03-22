@@ -1,9 +1,11 @@
 import { Guid } from "guid-typescript";
 import { ValidationError } from "../../errors/validationError";
 
-export function validateFly(fly: any): { airplaneId: Guid } {
-  if (!fly || !fly.airplaneId || !Guid.isGuid(fly.airplaneId)) {
-    throw new ValidationError("Airplane id for fly not found");
+export function validateFlyReq(fly: any): { airplaneId: Guid } {
+  let airplaneId: any = fly && fly.airplaneId;
+  if (!airplaneId || !Guid.isGuid(airplaneId)) {
+    throw new ValidationError("Invalid airplane id for fly: " + airplaneId);
   }
-  return { airplaneId: Guid.parse(fly.airplaneId) };
+
+  return { airplaneId: Guid.parse(airplaneId) };
 }

@@ -1,28 +1,29 @@
 import { Guid } from "guid-typescript";
 import { ValidationError } from "../../errors/validationError";
-import { isString } from "util";
+import { isNotEmptyString } from "../../utils/utils";
 
-export interface IQueryParams {
+export interface IInfoQueryParams {
   id?: Guid;
   landingFlightId?: Guid;
   departureFlightId?: Guid;
   parkingId?: string;
 }
 
-export function validateInfoQueryParams(query: any): IQueryParams {
+export function validateInfoQueryParams(query: any): IInfoQueryParams {
   if (!query) {
     return { };
   }
 
-  if (query.parkingId && !isString(query.parkingId)) {
-    throw new ValidationError("Invalid parking id in info query");
+  let parkingId: any = query.parkingId;
+  if (parkingId && !isNotEmptyString(parkingId)) {
+    throw new ValidationError("Invalid parking id in info query: " + parkingId);
   }
 
   return {
     id: validateOptionalGuid(query.id, "airplane"),
     landingFlightId: validateOptionalGuid(query.landingFlightId, "landing flight"),
     departureFlightId: validateOptionalGuid(query.departureFlightId, "departure flight"),
-    parkingId: query.parkingId,
+    parkingId: parkingId,
   };
 }
 
@@ -32,7 +33,7 @@ function validateOptionalGuid(guid: any, type: string): Guid | undefined {
   }
 
   if (!Guid.isGuid(guid)) {
-    throw new ValidationError(`Invalid ${type} id in info request`);
+    throw new ValidationError(`Invalid ${type} id in info request: ` + guid);
   }
 
   return Guid.parse(guid);

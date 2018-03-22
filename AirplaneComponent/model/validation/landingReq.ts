@@ -1,27 +1,29 @@
 import { Guid } from "guid-typescript";
 import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString } from "../../utils/validation";
+import { isNotEmptyString } from "../../utils/utils";
 
 export interface ILandingReq {
   stripId: string;
   aircraftId: Guid;
 }
 
-export function validateLandingReq(req: any): ILandingReq {
-  if (!req) {
+export function validateLandingReq(landingReq: any): ILandingReq {
+  if (!landingReq) {
     throw new ValidationError("Empty landing request parameters");
   }
 
-  if (!req.aircraftId || !Guid.isGuid(req.aircraftId)) {
-    throw new ValidationError("Invalid landing request airplane id");
+  let aircraftId: any = landingReq.aircraftId;
+  if (!aircraftId || !Guid.isGuid(aircraftId)) {
+    throw new ValidationError("Invalid landing request airplane id: " + aircraftId);
   }
 
-  if (!isNotEmptyString(req.stripId)) {
-    throw new ValidationError("Invalid strip id");
+  let stripId: any = landingReq.stripId;
+  if (!isNotEmptyString(stripId)) {
+    throw new ValidationError("Invalid landing request strip id: " + stripId);
   }
 
   return {
-    stripId: req.stripId,
-    aircraftId: Guid.parse(req.aircraftId),
+    stripId: stripId,
+    aircraftId: Guid.parse(aircraftId),
   };
 }

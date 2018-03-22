@@ -1,26 +1,30 @@
 import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString } from "../../utils/validation";
+import { isNotEmptyString } from "../../utils/utils";
 
-export function validateFollowMeStart(followMeStart: any): { carId: string } {
-  if (!followMeStart || !isNotEmptyString(followMeStart.carId)) {
-    throw new ValidationError("Expected id of Follow-Me car");
+export function validateFMStart(followMeStart: any): { carId: string } {
+  let carId: any = followMeStart && followMeStart.carId;
+  if (!isNotEmptyString(carId)) {
+    throw new ValidationError("Invalid id of Follow-Me car: " + carId);
   }
 
-  return { carId: followMeStart.carId };
+  return { carId: carId };
 }
 
-export function validateFollowMeEndToParking(followMeEnd: any): { parkingId: string } {
-  if (!followMeEnd || !isNotEmptyString(followMeEnd.parkingId)) {
-    throw new ValidationError("Expected id of parking after end of work of Follow-Me car");
+export function validateFMEndToParking(followMeEnd: any): { parkingId: string } {
+  let parkingId: any = followMeEnd && followMeEnd.parkingId;
+  if (!isNotEmptyString(parkingId)) {
+    throw new ValidationError("Invalid parking id after end of work of Follow-Me car: " + parkingId);
   }
 
-  return { parkingId: followMeEnd.parkingId };
+  return { parkingId: parkingId };
 }
 
-export function validateFollowMeEndToStrip(followMeEnd: any): { stripId: string } {
-  if (!followMeEnd || !isNotEmptyString(followMeEnd.stripId)) {
-    throw new ValidationError("Expected id of strip after end of work of Follow-Me car");
+export function validateFMEndToStrip(followMeEnd: any): { stripId: string } {
+  let stripId: any = followMeEnd && followMeEnd.stripId;
+
+  if (!isNotEmptyString(stripId)) {
+    throw new ValidationError("Invalid strip id after end of work of Follow-Me car: " + stripId);
   }
 
-  return { stripId: followMeEnd.stripId };
+  return { stripId: stripId };
 }

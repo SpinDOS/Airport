@@ -1,11 +1,14 @@
 import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString } from "../../utils/validation";
+import { isNotEmptyString } from "../../utils/utils";
 
 export interface IMQMessage {
   type: string;
-  replyTo?: string;
-  correlationId?: string;
   value: any;
+  // from properties, not body
+  properties: {
+    replyTo?: string;
+    correlationId?: string;
+  };
 }
 
 export function validateMQMessage(mqMessage: any): IMQMessage {
@@ -13,12 +16,14 @@ export function validateMQMessage(mqMessage: any): IMQMessage {
     throw new ValidationError("MQ message is empty");
   }
 
-  if (!isNotEmptyString(mqMessage.type)) {
-    throw new ValidationError("Invalid type of MQ message's type");
+  let type: any = mqMessage.type;
+  if (!isNotEmptyString(type)) {
+    throw new ValidationError("Invalid type of MQ message: " + type);
   }
 
   return {
-    type: mqMessage.type,
+    type: type,
     value: mqMessage.value,
+    properties: { }
   };
 }

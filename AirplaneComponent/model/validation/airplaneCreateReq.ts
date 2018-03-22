@@ -1,7 +1,6 @@
-import { IFlight } from "../flight";
 import { ValidationError } from "../../errors/validationError";
 import { Guid } from "guid-typescript";
-import { isNotEmptyString } from "../../utils/validation";
+import { isNotEmptyString, isPositiveInt } from "../../utils/utils";
 
 export interface IFLightReq {
   id: Guid;
@@ -12,30 +11,34 @@ export interface IFLightReq {
 
 export function validateFlightReq(flight: any): IFLightReq {
   if (!flight) {
-    throw new ValidationError("Flight not found");
+    throw new ValidationError("Flight info not found");
   }
 
-  if (!flight.id || !Guid.isGuid(flight.id)) {
-    throw new ValidationError("Flight id not found");
+  let flightId: any = flight.id;
+  if (!flightId || !Guid.isGuid(flightId)) {
+    throw new ValidationError("Invalid flight id: " + flightId);
   }
 
-  if (!isNotEmptyString(flight.code)) {
-    throw new ValidationError("Flight code not found");
+  let code: any = flight.code;
+  if (!isNotEmptyString(code)) {
+    throw new ValidationError("Invalid flight code: " + code);
   }
 
-  if (!Number.isInteger(flight.passengersCount) || flight.passengersCount < 0) {
-    throw new ValidationError("Invalid passengers count");
+  let passengersCount: any = flight.passengersCount;
+  if (!isPositiveInt(passengersCount) && passengersCount !== 0) {
+    throw new ValidationError("Invalid passengers count: " + passengersCount);
   }
 
-  if (!Number.isInteger(flight.serviceBaggageCount) || flight.serviceBaggageCount < 0) {
-    throw new ValidationError("Invalid service baggage count");
+  let serviceBaggageCount: any = flight.serviceBaggageCount;
+  if (!isPositiveInt(serviceBaggageCount) && serviceBaggageCount !== 0) {
+    throw new ValidationError("Invalid service baggage count: " + serviceBaggageCount);
   }
 
   return {
-    id: Guid.parse(flight.id),
-    code: flight.code,
-    passengersCount: flight.passengersCount,
-    serviceBaggageCount: flight.serviceBaggageCount,
+    id: Guid.parse(flightId),
+    code: code,
+    passengersCount: passengersCount,
+    serviceBaggageCount: serviceBaggageCount,
   };
 }
 
@@ -46,7 +49,7 @@ export interface IAirplaneCreateReq {
 
 export function validateAirplaneCreateReq(airplaneCreateParams: IAirplaneCreateReq): IAirplaneCreateReq {
   if (!airplaneCreateParams) {
-    throw new ValidationError("Airplane create parameters not found");
+    throw new ValidationError("Airplane create configuration not found");
   }
 
   return {
