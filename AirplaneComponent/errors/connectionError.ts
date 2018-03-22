@@ -1,13 +1,22 @@
-export class ConnectionError extends Error {
+import { BaseError } from "./baseError";
+
+export class ConnectionError extends BaseError {
   constructor(public url?: string, message?: string) {
-    super(message || (url && "Can not connect to " + url) || undefined);
+    super(message || getMessage(url));
   }
 }
 
-export function onApiError(err: any): never {
+function getMessage(url?: string): string | undefined {
+  return url
+    ? "Can not connect to " + url
+    : undefined;
+}
+
+export function onApiError(api: string, err: any, url?: string): never {
+  let message: string = api + " connection error";
   if (err.statusCode) {
-    throw new ConnectionError("Passenger API error: status " + err.statusCode);
-  } else {
-    throw new ConnectionError("Passenger API error");
+    message += ": status code " + err.statusCode;
   }
+
+  throw new ConnectionError(url, message);
 }

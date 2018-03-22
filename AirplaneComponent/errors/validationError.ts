@@ -1,17 +1,13 @@
-export class ValidationError extends Error {
+import { BaseError } from "./baseError";
+
+export class ValidationError extends BaseError {
   constructor(message?: string, public sourceText?: string) {
     super(message);
   }
 
   toString(): string {
-    if (this.message) {
-      return this.message;
-    }
-
-    if (this.sourceText) {
-      return `Validation errors detected: ${this.sourceText}`;
-    }
-
-    return super.toString();
+    return !this.message && this.sourceText
+      ? "Validation errors: " + this.sourceText
+      : super.toString();
   }
 }

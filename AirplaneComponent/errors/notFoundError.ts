@@ -1,15 +1,13 @@
-export class NotFoundError extends Error {
-  constructor(public element?: string, message?: string) {
-    super(message);
-  }
+import { BaseError } from "./baseError";
 
-  toString(): string {
-    if (this.message) {
-      return this.message;
-    } else if (this.element) {
-      return `Not found: ${this.element}`;
-    } else {
-      return super.toString();
-    }
+export class NotFoundError extends BaseError {
+  constructor(public element?: string, message?: string) {
+    super(message || getMessage(element));
   }
+}
+
+function getMessage(element?: string): string | undefined {
+  return element
+    ? "Not found: " + element
+    : undefined;
 }

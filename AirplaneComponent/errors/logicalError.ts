@@ -1,9 +1,7 @@
-export class LogicalError extends Error {
+import { BaseError } from "./baseError";
+
+export class LogicalError extends BaseError {
   constructor(message?: string) {
     super(message);
-  }
-
-  toString(): string {
-    return this.message || super.toString();
   }
 }
