@@ -8,7 +8,8 @@ import * as logger from "../utils/logger";
 import * as formatter from "../utils/formatter";
 
 import { createAirplane } from "./createLandingAirplane";
-import { unloadBaggage, loadBaggage } from "./baggageLoader";
+import { loadBaggage } from "./baggageLoader";
+import { unloadBaggage } from "./baggageUnloader";
 import { landing } from "./landing";
 import { refuel } from "./refuel";
 import { fly } from "./fly";
