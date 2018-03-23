@@ -1,33 +1,39 @@
-import { IMQMessage } from "../model/validation/mqMessage";
-import * as logger from "../utils/logger";
+import { delay } from "bluebird";
 import { Guid } from "guid-typescript";
-import { validateFly } from "../model/validation/fly";
-import { IAirplane } from "../model/airplane";
-import * as airplanePool from "../airPlanePool";
+
+import { IMQMessage } from "../model/validation/mqMessage";
+import * as mq from "./mq";
+
+import * as passengersAPI from "../webapi/passengersAPI";
+
 import * as assert from "../utils/assert";
 import * as formatter from "../utils/formatter";
-import * as mq from "./mq";
-import { delay } from "bluebird";
-import * as request from "request";
-import { passengersUrl } from "../webapi/httpServer";
+import * as logger from "../utils/logger";
+
+import { IAirplane } from "../model/airplane";
+import * as airplanePool from "../airPlanePool";
+
+import { validateFlyReq } from "../model/validation/fly";
+
+
 
 const duration: number = 3000;
 export async function fly(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to fly");
 
-  let airplaneId: Guid = validateFly(mqMessage.value).airplaneId;
+  let airplaneId: Guid = validateFlyReq(mqMessage.value).airplaneId;
   let airplane: IAirplane = airplanePool.get(airplaneId);
 
   updateStatus(airplane);
   visualizeFly(airplane);
   await delay(duration);
 
-  end(airplane);
+  await end(airplane);
 }
 
 function updateStatus(airplane: IAirplane): void {
   assert.AreEqual(AirplaneStatus.PreparingToDeparture, airplane.status.type);
-  logger.log(formatter.airplane(airplane) + " is flying");
+  logger.log(formatter.airplane(airplane) + " is flying from " + airplane.status.additionalInfo.stripId);
 }
 
 function visualizeFly(airplane: IAirplane): void {
@@ -39,29 +45,34 @@ function visualizeFly(airplane: IAirplane): void {
     Duration: duration,
   };
 
-  mq.send(message, mq.visualizerEndpoint);
+  mq.send(message, mq.visualizerMQ);
 }
 
-function end(airplane: IAirplane): void {
-  airplanePool.remove(airplane.id);
+async function end(airplane: IAirplane): Promise<void> {
+  notifyFollowMe(airplane);
+  await notifyPassengers(airplane);
 
+  airplanePool.remove(airplane.id);
+  logger.log(formatter.airplane(airplane) + " has flown away");
+}
+
+function notifyFollowMe(airplane: IAirplane): void {
   let messageToFollowme: any = {
     service: "follow_me",
     request: "flycomp",
     aircraftId: airplane.id.toString(),
     stripId: airplane.status.additionalInfo.stripId,
   };
-  mq.send(messageToFollowme, mq.followMeEndpoint);
 
-  let passengersRequestBody: any = { flight: airplane.departureFlight.id.toString() };
-  request.post(passengersUrl + "fly", {
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(passengersRequestBody),
-  }, (_, err) => {
-    if (err) {
-      logger.error("Error notifying passengers about airplane fly: " + formatter.airplane(airplane));
-    }
-  });
+  mq.send(messageToFollowme, mq.followMeMQ);
+}
 
-  logger.log(formatter.airplane(airplane) + " has flown away");
+function notifyPassengers(airplane: IAirplane): Promise<void> {
+  let body: any = {
+    flight: airplane.departureFlight.id.toString(),
+  };
+
+  return passengersAPI.post("fly", body)
+    .catch(e => logger.log(
+      `Error notifying passengers about airplane fly: ${formatter.airplane(airplane)}. ` + e.toString()));
 }

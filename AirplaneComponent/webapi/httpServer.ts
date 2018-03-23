@@ -20,8 +20,6 @@ import * as followMe from "./followMe";
 import * as info from "./info";
 
 
-export const passengersUrl: string = "http://quantum0.pythonanywhere.com/";
-
 // const host: string = "10.99.10.10";
 const host: string = "localhost";
 const port: number = 8081;
