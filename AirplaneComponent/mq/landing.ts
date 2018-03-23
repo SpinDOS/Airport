@@ -1,14 +1,18 @@
+import { delay } from "bluebird";
+
 import { IMQMessage } from "../model/validation/mqMessage";
+import * as mq from "../mq/mq";
+
 import * as logger from "../utils/logger";
-import { ILandingReq, validateLandingReq } from "../model/validation/landingReq";
-import * as airplanePool from "../airPlanePool";
-import { IAirplane } from "../model/airplane";
 import * as assert from "../utils/assert";
 import * as formatter from "../utils/formatter";
-import * as mq from "../mq/mq";
-import { Message } from "amqp-ts";
-import { delay } from "bluebird";
 import { randomInt } from "../utils/random";
+
+import { IAirplane } from "../model/airplane";
+import * as airplanePool from "../airPlanePool";
+
+import { ILandingReq, validateLandingReq } from "../model/validation/landingReq";
+
 
 export async function landing(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got request for landing");
@@ -24,7 +28,7 @@ export async function landing(mqMessage: IMQMessage): Promise<void> {
 }
 
 async function land(landingReq: ILandingReq): Promise<void> {
-  let duration: number = randomInt(1000, 10000);
+  let duration: number = randomInt(2000, 10000);
   visualizeLanding(landingReq, duration);
   await delay(duration);
 }
@@ -34,12 +38,12 @@ function updateStatusStart(airplane: IAirplane, landingReq: ILandingReq): void {
 
   airplane.status.type = AirplaneStatus.Landing;
   airplane.status.additionalInfo.stripId = landingReq.stripId;
-  console.log(formatter.airplane(airplane) + "is landing to " + landingReq.stripId);
+  console.log(formatter.airplane(airplane) + " is landing to " + landingReq.stripId);
 }
 
 function updateStatusEnd(airplane: IAirplane): void {
   airplane.status.type = AirplaneStatus.WaitingForFollowMe;
-  console.log(formatter.airplane(airplane) + "has landed to " + airplane.status.additionalInfo.stripId);
+  console.log(formatter.airplane(airplane) + " has landed to " + airplane.status.additionalInfo.stripId);
 }
 
 function visualizeLanding(landingReq: ILandingReq, duration: number): void {
@@ -50,7 +54,8 @@ function visualizeLanding(landingReq: ILandingReq, duration: number): void {
     Strip: landingReq.stripId,
     Duration: duration,
   };
-  mq.send(body, mq.visualizerEndpoint);
+
+  mq.send(body, mq.visualizerMQ);
 }
 
 function notifyAboutEnd(landingReq: ILandingReq): void {
@@ -59,5 +64,6 @@ function notifyAboutEnd(landingReq: ILandingReq): void {
     request: "landingcomp",
     fmId: landingReq.aircraftId.toString()
   };
-  mq.send(body, mq.followMeEndpoint);
+
+  mq.send(body, mq.followMeMQ);
 }
