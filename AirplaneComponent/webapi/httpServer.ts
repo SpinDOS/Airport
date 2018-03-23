@@ -22,6 +22,7 @@ import * as info from "./info";
 
 export const passengersUrl: string = "http://quantum0.pythonanywhere.com/";
 
+// const host: string = "10.99.10.10";
 const host: string = "localhost";
 const port: number = 8081;
 
@@ -32,7 +33,7 @@ export function start(): void {
   setUpRouter(router);
 
   app.use(handleErrors);
-  app.use(bodyParser());
+  app.use(configureBodyParser());
   app.use(router.routes());
 
   app.listen(port, host);
@@ -83,4 +84,18 @@ function getStatusCode(err: any): number {
     return HttpStatus.INTERNAL_SERVER_ERROR;
   }
   return HttpStatus.INTERNAL_SERVER_ERROR;
+}
+
+function configureBodyParser(): Middleware<Koa.Context> {
+
+  function onError(err: Error, ctx: Koa.Context): void {
+    let message: string = (err as any).body || err.message || err.toString();
+    throw new ValidationError("Http request body parse error: " + message);
+  }
+
+  let opts: any = {
+    onerror: onError
+  };
+
+  return bodyParser(opts);
 }

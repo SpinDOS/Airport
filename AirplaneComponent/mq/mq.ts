@@ -1,51 +1,71 @@
-import * as Amqp from "amqp-ts";
-import * as logger from "../utils/logger";
-import { ValidationError } from "../errors/validationError";
-import * as formatter from "../utils/formatter";
+import * as Amqp from "amqplib";
 import { consumer } from "./mqConsumer";
+import * as logger from "../utils/logger";
 
-export type MQEndpoint = Amqp.Queue | Amqp.Exchange;
+const connectOptions: Amqp.Options.Connect = {
+  hostname: "duckbill.rmq.cloudamqp.com",
+  username: "aazhpoyi",
+  password: "wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK",
+  protocol: "amqps",
+  vhost: "aazhpoyi",
+};
 
-const url: string = "amqps://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi";
-const declareOptions: Amqp.Queue.DeclarationOptions = { durable: true, autoDelete: false };
+// const connectOptions: Amqp.Options.Connect = {
+//   hostname: "10.99.211.105",
+//   port: 5672,
+//   username: "user",
+//   password: "password",
+//   protocol: "amqp",
+// };
 
-let connection: Amqp.Connection;
-let pool: { [name: string]: MQEndpoint } = { };
+export let connection: Amqp.Connection;
+export let channel: Amqp.Channel;
+export let myQueue: Amqp.Replies.AssertQueue;
 
-export let myQueue: MQEndpoint;
-export let visualizerEndpoint: MQEndpoint;
-export let followMeEndpoint: MQEndpoint;
-export let fuelEndpoint: MQEndpoint;
+export const airplaneMQ: string = "Airplane";
+export const visualizerMQ: string = "visualizer";
+export const followMeMQ: string = "FMMQ";
+export const fuelMQ: string = "refuelerMQ";
 
-export function getQueueOrExchange(name: string): MQEndpoint {
-  let entry: MQEndpoint | undefined = pool[name];
-  if (!entry) {
-    pool[name] = entry = connection.declareQueue(name, declareOptions);
-  }
-  return entry;
+export async function send(data: object, to: string, correlationId?: any ): Promise<void> {
+  let options: Amqp.Options.Publish = {
+    replyTo: myQueue.queue,
+    correlationId: correlationId,
+    contentEncoding: "utf8",
+    contentType: "application/json",
+  };
+
+  let content: Buffer = new Buffer(JSON.stringify(data), options.contentEncoding);
+  channel.publish("", to, content, options);
 }
 
-export function send(data: object, to: MQEndpoint, correlationId?: any): void {
-  let message: Amqp.Message = new Amqp.Message(JSON.stringify(data));
-  message.properties.correlation_id = correlationId;
-  message.sendTo(to);
-}
+export async function start(): Promise<void> {
+  connection = await Amqp.connect(connectOptions);
+  channel = await connection.createChannel();
 
-export function start(): void {
-  connection = new Amqp.Connection(url);
-  fillPool();
+  await createQueues();
 
-  myQueue.activateConsumer(consumer, { exclusive: true, noAck: false });
+  channel.consume(myQueue.queue, consumer, { exclusive: true, noAck: false });
   logger.log("Connected to RabbitMQ");
 }
 
-// tslint:disable:no-string-literal
-function fillPool(): void {
-  myQueue = connection.declareQueue("Airplane", declareOptions);
-  pool[myQueue.name] = myQueue;
 
-  followMeEndpoint = pool["FollowMe"] = pool["FMMQ"] = connection.declareQueue("FMMQ", declareOptions);
-  fuelEndpoint = pool["Fuel"] = pool["refuelerMQ"] = connection.declareQueue("refuelerMQ", declareOptions);
-  visualizerEndpoint = pool["Visualizer"] = connection.declareQueue("Visualizer", declareOptions);
+
+async function createQueues(): Promise<void> {
+  let options: Amqp.Options.AssertQueue = {
+    durable: true,
+    autoDelete: false,
+    exclusive: true,
+  };
+
+  myQueue = await channel.assertQueue(airplaneMQ, options);
+
+  options = {
+    durable: true,
+    exclusive: false,
+  };
+
+  await channel.assertQueue(followMeMQ, options);
+  await channel.assertQueue(fuelMQ, options);
+  await channel.assertQueue(visualizerMQ, options);
 }
-// tslint:enable:no-string-literal

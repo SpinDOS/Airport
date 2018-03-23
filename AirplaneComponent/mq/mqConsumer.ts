@@ -1,8 +1,12 @@
-import * as Amqp from "amqp-ts";
+import * as Amqp from "amqplib";
+
+import * as mq from "./mq";
 import { IMQMessage, validateMQMessage } from "../model/validation/mqMessage";
+import { ValidationError } from "../errors/validationError";
+
 import * as logger from "../utils/logger";
 import * as formatter from "../utils/formatter";
-import { ValidationError } from "../errors/validationError";
+
 import { createAirplane } from "./createLandingAirplane";
 import { unloadBaggage, loadBaggage } from "./baggageLoader";
 import { landing } from "./landing";
@@ -10,28 +14,42 @@ import { refuel } from "./refuel";
 import { fly } from "./fly";
 import { loadPassengers, unloadPassengers } from "./passengersLoader";
 
-export function consumer(message: Amqp.Message): void {
+
+
+export function consumer(message: Amqp.Message | null): void {
+  if (!message) {
+    return;
+  }
+
   let str: string | undefined = undefined;
   try {
     str = decodeContent(message);
-    let obj: object = JSON.parse(str);
+    let obj: object = parse(str);
     let mqMessage: IMQMessage = validateMQMessage(obj);
-    mqMessage.correlationId = message.properties.correlation_id;
-    mqMessage.replyTo = message.properties.reply_to;
+    mqMessage.properties.correlationId = message.properties.correlationId;
+    mqMessage.properties.replyTo = message.properties.replyTo;
 
     handleReq(mqMessage);
   } catch(e) {
     logger.error(formatter.error(e, str));
   }
 
-  message.ack();
+  mq.channel.ack(message);
 }
 
 function decodeContent(message: Amqp.Message): string {
   try {
-    return message.content.toString("utf8");
+    return message.content.toString(message.properties.contentEncoding || "utf8");
   } catch {
     throw new ValidationError("Invalid MQ message encoding");
+  }
+}
+
+function parse(str: string): object {
+  try {
+    return JSON.parse(str);
+  } catch (e) {
+    throw new ValidationError("Invalid MQ message's JSON: " + e.toString());
   }
 }
 
