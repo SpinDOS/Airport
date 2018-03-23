@@ -22,6 +22,7 @@ export interface IAirplane {
       buses?: string[],
       baggageCars?: string[],
       followMeCarId?: string,
+      fuelerCarId?: string,
       stripId?: string,
      };
   };

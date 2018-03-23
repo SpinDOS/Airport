@@ -1,9 +1,10 @@
 import { Guid } from "guid-typescript";
 import { ValidationError } from "../../errors/validationError";
-import { isPositiveNumber } from "../../utils/utils";
+import { isPositiveNumber, isNotEmptyString } from "../../utils/utils";
 
 export interface IRefuelReq {
   aircraftId: Guid;
+  carId: string;
   volume: number;
 }
 
@@ -17,6 +18,11 @@ export function validateRefuelReq(refuelReq: any): IRefuelReq {
     throw new ValidationError("Invalid airplane id for refuelling: " + aircraftId);
   }
 
+  let carId: any = refuelReq.carId;
+  if (!isNotEmptyString(carId)) {
+    throw new ValidationError("Invalid car id for refuelling: " + carId);
+  }
+
   let volume: any = refuelReq.volume;
   if (!isPositiveNumber(volume)) {
     throw new ValidationError("Invalid refuelling volume: " + volume);
@@ -24,6 +30,7 @@ export function validateRefuelReq(refuelReq: any): IRefuelReq {
 
   return {
     aircraftId: Guid.parse(aircraftId),
+    carId: carId,
     volume: volume,
   };
 }

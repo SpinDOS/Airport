@@ -25,7 +25,7 @@ export let myQueue: Amqp.Replies.AssertQueue;
 export const airplaneMQ: string = "Airplane";
 export const visualizerMQ: string = "visualizer";
 export const followMeMQ: string = "FMMQ";
-export const fuelMQ: string = "refuelerMQ";
+export const fuelAnswerMQ: string = "refuelerAnswerMQ";
 
 export async function send(data: object, to: string, correlationId?: any ): Promise<void> {
   let options: Amqp.Options.Publish = {
@@ -66,6 +66,6 @@ async function createQueues(): Promise<void> {
   };
 
   await channel.assertQueue(followMeMQ, options);
-  await channel.assertQueue(fuelMQ, options);
+  await channel.assertQueue(fuelAnswerMQ, options);
   await channel.assertQueue(visualizerMQ, options);
 }
