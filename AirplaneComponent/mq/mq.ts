@@ -55,16 +55,10 @@ async function createQueues(): Promise<void> {
   let options: Amqp.Options.AssertQueue = {
     durable: true,
     autoDelete: false,
-    exclusive: true,
-  };
-
-  myQueue = await channel.assertQueue(airplaneMQ, options);
-
-  options = {
-    durable: true,
     exclusive: false,
   };
 
+  myQueue = await channel.assertQueue(airplaneMQ, options);
   await channel.assertQueue(followMeMQ, options);
   await channel.assertQueue(fuelAnswerMQ, options);
   await channel.assertQueue(visualizerMQ, options);
