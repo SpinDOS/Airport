@@ -28,6 +28,11 @@ struct Environment {
 	const QString PassangerGate   = "PassengerGate1";
 	const QString BaggageGate     = "BaggageGate1";
 
+	const QString BaggageGarage   = "BaggageGarage";
+	const QString BusGarage       = "BusGarage";
+	const QString FuelGarage      = "FuelGarage";
+	const QString FollowMeGarage  = "FollowMeGarage";
+
 	const QString NeedMovement    = "need";
 	const QString DoneMovement    = "done";
 

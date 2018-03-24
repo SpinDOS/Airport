@@ -6,11 +6,13 @@
 #include <QQueue>
 #include <QFile>
 
+#include "env.h"
 #include "logger.h"
 
 class TrafficControl {
 
 	Logger _log {"Router  "};
+	Environment &_env;
 
 	struct Node {
 		qint8 busy = 0;
@@ -27,7 +29,9 @@ class TrafficControl {
 	qint32 readNodes(const QStringList &nodes);
 
 public:
-	qint32 init(const QString &path);
+	TrafficControl(const Environment &e);
+
+	qint32 init();
 	const QString &moveTo(const QString &src, const QString &dst);
 
 	void lock(const QString &src, const QString &dst);

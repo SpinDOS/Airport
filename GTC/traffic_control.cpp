@@ -1,5 +1,8 @@
 #include "traffic_control.h"
 
+TrafficControl::TrafficControl(const Environment &e)
+    : _env(const_cast<Environment &>(e))
+{}
 
 qint32 TrafficControl::readNodes(const QStringList &nodes)
 {
@@ -14,11 +17,11 @@ qint32 TrafficControl::readNodes(const QStringList &nodes)
 	return nodes.size();
 }
 
-qint32 TrafficControl::init(const QString &path)
+qint32 TrafficControl::init()
 {
 	QFile file;
 
-	file.setFileName(path);
+	file.setFileName(_env.graphPath);
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
 		return _log.errorRet(-1, "fail open graph file");
 
@@ -46,6 +49,14 @@ TrafficControl::moveTo(const QString &src, const QString &dst)
 	qint32 dstId = _map[dst];
 	qint32 n = _map.size();
 
+	bool noWay = true;
+	foreach (const auto &v, _adj[srcId].route)
+		if (!_adj[v].busy)
+			noWay = false;
+
+	if (noWay)
+		return EmptyVertex;
+
 	QQueue<qint32> q;
 	QVector<qint8> used(n, 0);
 	QVector<qint32> parents(n, 0);
@@ -70,10 +81,9 @@ TrafficControl::moveTo(const QString &src, const QString &dst)
 		return EmptyVertex;
 	}
 
-	qint32 nextId = -1;
-	for (qint32 v = dstId; v != -1; v = parents[v])
-		if (parents[v] == srcId)
-			nextId = v;
+	qint32 nextId = dstId;
+	for(; parents[nextId] != srcId; nextId = parents[nextId])
+		;
 
 	if (_adj[nextId].busy)
 		return EmptyVertex;
@@ -85,7 +95,13 @@ TrafficControl::moveTo(const QString &src, const QString &dst)
 
 void TrafficControl::lock(const QString &src, const QString &dst)
 {
-	_adj[_map[src]].busy = _adj[_map[dst]].busy = 1;
+	_adj[_map[src]].busy = 1;
+
+	if (dst == _env.BusGarage || dst == _env.BaggageGarage ||
+	        dst == _env.FollowMeGarage || dst == _env.FuelGarage)
+		return;
+
+	_adj[_map[dst]].busy = 1;
 }
 
 void TrafficControl::unlock(const QString &src)

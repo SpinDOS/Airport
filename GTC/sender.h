@@ -20,9 +20,10 @@ class AmqpSender {
 public:
 	AmqpSender(const Environment &e);
 
-	qint32 postMovementMsg(const QString &src, const QString &dst,
-						   const QString &svc, const amqp_basic_properties_t *prop);
-	qint32 postServiceMsg(Airplain::State state, const QString &airplaneId, const QString &parkingId);
+	qint32 declareClientQueues();
+
+	qint32 postMovementMsg(const amqp_basic_properties_t *prop, const QJsonObject &request);
+	qint32 postServiceMsg(const amqp_bytes_t &queue, const QJsonObject &request);
 };
 
 #endif // AMQP_SENDER_H
