@@ -22,7 +22,7 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to load baggage");
 
   let loadReq: ILoadBaggageReq = validateLoadBaggageReq(mqMessage.value);
-  let airplane: IAirplane = airplanePool.byDepartureFlight(loadReq.departureFlightId);
+  let airplane: IAirplane = airplanePool.get(loadReq.airplaneId);
 
   updateStatusBeforeLoad(airplane, loadReq);
   await load(loadReq, airplane);
@@ -67,7 +67,7 @@ function notifyAboutLoadEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): vo
   let body: any = {
     result: "ok",
     carId: loadReq.carId,
-    departureFlightId: loadReq.departureFlightId
+    airplaneId: loadReq.airplaneId.toString()
   };
 
   mq.send(body, mqMessage.properties.replyTo!, mqMessage.properties.correlationId);

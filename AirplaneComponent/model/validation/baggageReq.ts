@@ -3,7 +3,7 @@ import { ValidationError } from "../../errors/validationError";
 import { isNotEmptyString, isPositiveInt } from "../../utils/utils";
 
 export interface IUnloadBaggageReq {
-  landingFlightId: Guid;
+  airplaneId: Guid;
   carId: string;
   count: number;
 }
@@ -13,9 +13,9 @@ export function validateUnloadBaggageReq(unloadBagReq: any): IUnloadBaggageReq {
     throw new ValidationError("Missing baggage unload parameters");
   }
 
-  let landingFlightId: any = unloadBagReq.landingFlightId;
-  if (!landingFlightId || !Guid.isGuid(landingFlightId)) {
-    throw new ValidationError("Invalid landing flight to unload baggage: " + landingFlightId);
+  let airplaneId: any = unloadBagReq.airplaneId;
+  if (!airplaneId || !Guid.isGuid(airplaneId)) {
+    throw new ValidationError("Invalid airplane id to unload baggage: " + airplaneId);
   }
 
   let count: any = unloadBagReq.count;
@@ -29,7 +29,7 @@ export function validateUnloadBaggageReq(unloadBagReq: any): IUnloadBaggageReq {
   }
 
   return {
-    landingFlightId: Guid.parse(landingFlightId),
+    airplaneId: Guid.parse(airplaneId),
     count: count,
     carId: carId,
    };
@@ -38,7 +38,7 @@ export function validateUnloadBaggageReq(unloadBagReq: any): IUnloadBaggageReq {
 
 
 export interface ILoadBaggageReq {
-  departureFlightId: Guid;
+  airplaneId: Guid;
   carId: string;
   baggages: Guid[];
 }
@@ -56,9 +56,9 @@ export function validateLoadBaggageReq(baggageLoadReq: any): ILoadBaggageReq {
     throw new ValidationError("Baggage load parameters not found");
   }
 
-  let departureFlightId: any = baggageLoadReq.departureFlightId;
-  if (!departureFlightId || !Guid.isGuid(departureFlightId)) {
-    throw new ValidationError("Invalid departure flight to load baggage: " + departureFlightId);
+  let airplaneId: any = baggageLoadReq.airplaneId;
+  if (!airplaneId || !Guid.isGuid(airplaneId)) {
+    throw new ValidationError("Invalid airplane id to load baggage: " + airplaneId);
   }
 
   let carId: any = baggageLoadReq.carId;
@@ -76,7 +76,7 @@ export function validateLoadBaggageReq(baggageLoadReq: any): ILoadBaggageReq {
   }
 
   return {
-    departureFlightId: Guid.parse(departureFlightId),
+    airplaneId: Guid.parse(airplaneId),
     carId: carId,
     baggages: baggages.map(validateBaggageId),
   };

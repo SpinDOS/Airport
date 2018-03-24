@@ -23,7 +23,7 @@ export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to unload baggage");
 
   let unloadReq: IUnloadBaggageReq = validateUnloadBaggageReq(mqMessage.value);
-  let airplane: IAirplane = airplanePool.byLandingFlight(unloadReq.landingFlightId);
+  let airplane: IAirplane = airplanePool.get(unloadReq.airplaneId);
 
   updateStatusBeforeUnload(airplane, unloadReq);
   let baggage: IBaggage[] = await unload(unloadReq, airplane);
@@ -61,7 +61,7 @@ function notifyAboutUnload(baggage: IBaggage[], unloadReq: IUnloadBaggageReq, mq
 
   let body: any = {
     carId: unloadReq.carId,
-    landingFlightId: unloadReq.landingFlightId,
+    airplaneId: unloadReq.airplaneId.toString(),
     baggage: baggage.map(b => b.id.toString())
   };
 
