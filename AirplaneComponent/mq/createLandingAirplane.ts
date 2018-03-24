@@ -48,7 +48,7 @@ export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
     baggages: pasAndBag.baggage,
 
     status: {
-      type: AirplaneStatus.OnParkingAfterLandingLoaded,
+      type: AirplaneStatus.WaitingForLanding,
       additionalInfo: { }
     },
   };
