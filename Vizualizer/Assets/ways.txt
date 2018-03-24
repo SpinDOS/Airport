@@ -59,7 +59,7 @@ PassengerGate1 PassengerGate1Out
 PassengerGate1Out PassengerGate1OutH6
 H6Left PassengerGate1OutH6
 PassengerGate1OutH6 TurnToBaggageGate1
-TurnToBaggageGate1 BaggageGate1Out6
+TurnToBaggageGate1 BaggageGate1OutH6
 TurnToBaggageGate1 BaggageGate1
 BaggageGate1 BaggageGate1Out
 BaggageGate1Out BaggageGate1OutH6
