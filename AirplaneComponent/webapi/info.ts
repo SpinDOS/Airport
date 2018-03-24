@@ -1,6 +1,8 @@
 import Router, { IRouterContext } from "koa-router";
 import { Guid } from "guid-typescript";
 
+import * as logger from "../utils/logger";
+
 import * as airplanePool from "../airPlanePool";
 
 import { IInfoQueryParams, validateInfoQueryParams } from "../model/validation/infoQueryParams";
@@ -11,6 +13,7 @@ export function register(router: Router): void {
 }
 
 function info(ctx: IRouterContext): void {
+  logger.log("Got info request");
   let params: IInfoQueryParams = validateInfoQueryParams(ctx.request.query);
   let result: IAirplane[] = airplanesArray().filter(createFilter(params));
   ctx.body = JSON.stringify(result.map(format));
