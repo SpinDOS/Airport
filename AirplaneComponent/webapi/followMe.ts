@@ -28,7 +28,6 @@ function startFollowingToParking(ctx: IRouterContext): void {
   let airplane: IAirplane = ctx.airplane;
 
   assert.AreEqual(AirplaneStatus.WaitingForFollowMe, airplane.status.type);
-
   airplane.status.type = AirplaneStatus.FollowingAfterLanding;
   airplane.status.additionalInfo.followMeCarId = carId;
   delete airplane.status.additionalInfo.stripId;
@@ -43,6 +42,7 @@ function endFollowingToParking(ctx: IRouterContext): void {
   let parkingId: string = validateFMEndToParking(ctx.request.body).parkingId;
   let airplane: IAirplane = ctx.airplane;
 
+  assert.AreEqual(AirplaneStatus.FollowingAfterLanding, airplane.status.type);
   airplane.status.type =
     airplane.passengers.length > 0 || airplane.baggages.length > 0
     ? AirplaneStatus.OnParkingAfterLandingLoaded
