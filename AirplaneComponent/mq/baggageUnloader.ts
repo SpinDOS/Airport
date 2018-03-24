@@ -30,14 +30,14 @@ export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
   updateStatusAfterUnload(airplane, unloadReq);
   notifyAboutUnload(baggage, unloadReq, mqMessage);
 
-  logger.log(`Unloaded ${baggage.length} baggage from ${formatter.airplane(airplane)} to ${unloadReq.carId}. ` + `
-              ${airplane.baggages.length} left`);
+  logger.log(`Unloaded ${baggage.length} baggage from ${formatter.airplane(airplane)} to ${unloadReq.carId}. ` +
+              `${airplane.baggages.length} left`);
   checkUnloadEnd(airplane);
 }
 
 async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promise<IBaggage[]> {
   let count: number = Math.min(unloadReq.count, airplane.baggages.length);
-  let duration: number = count * 100;
+  let duration: number = count * 500;
 
   visualizeUnload(unloadReq, duration);
   await delay(duration);
@@ -72,7 +72,7 @@ function visualizeUnload(unloadReq: IUnloadBaggageReq, duration: number): void {
   let body: any = {
     Type: "animation",
     AnimationType: "baggage",
-    Transport: unloadReq.carId.toString(),
+    Transport: unloadReq.carId,
     Duration: duration,
   };
 
