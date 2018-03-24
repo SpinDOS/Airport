@@ -20,8 +20,7 @@ import * as followMe from "./followMe";
 import * as info from "./info";
 
 
-// const host: string = "10.99.10.10";
-const host: string = "localhost";
+const host: string = "0.0.0.0";
 const port: number = 8081;
 
 let app: Koa = new Koa();
@@ -35,7 +34,7 @@ export function start(): void {
   app.use(router.routes());
 
   app.listen(port, host);
-  logger.log(`Http server is listening on http://${host}:${port}/`);
+  logger.log(`Http server is listening on port ${port}: http://localhost:${port}/`);
 }
 
 async function handleErrors(ctx: Koa.Context, next: () => Promise<any>): Promise<any> {
