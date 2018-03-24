@@ -78,7 +78,9 @@ TrafficControl::moveTo(const QString &src, const QString &dst)
 	if (_adj[nextId].busy)
 		return EmptyVertex;
 
-	return _mirrorMap[nextId];
+	const auto &nextLoc = _mirrorMap[nextId];
+	_log.info("src -> " + src + " dst -> " + nextLoc);
+	return nextLoc;
 }
 
 void TrafficControl::lock(const QString &src, const QString &dst)

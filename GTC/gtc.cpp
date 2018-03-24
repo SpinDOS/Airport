@@ -32,7 +32,7 @@ GtcLogic::processMovementRequest(const QJsonDocument &doc, const amqp_basic_prop
 	        || dst.isNull() || stat.isNull())
 		return _log.errorRet(ProcessStatus::Nack, "bad json fields type");
 
-	_log.info("got movement message from " + svc + " src -> " + dst + " status: " + stat);
+	_log.info("got movement message status: " + stat);
 
 	if (stat == _env.NeedMovement) {
 		auto nextLoc = _router.moveTo(src, dst);
@@ -54,29 +54,29 @@ GtcLogic::ProcessStatus
 GtcLogic::processAcceptRequest(const QJsonDocument &doc)
 {
 	auto svcObj     = doc["service"];
-	auto flightObj  = doc["flight_id"];
+	auto airplaneObj  = doc["airplane_id"];
 	auto parkingObj = doc["parking_id"];
 
-	if (svcObj.isUndefined() || flightObj.isUndefined() || parkingObj.isUndefined())
+	if (svcObj.isUndefined() || airplaneObj.isUndefined() || parkingObj.isUndefined())
 		return _log.errorRet(ProcessStatus::Nack, "bad accept message fields");
 
 	auto svc = svcObj.toString();
-	auto flightId = flightObj.toString();
+	auto airplaneId = airplaneObj.toString();
 	auto parkingId = parkingObj.toString();
 
-	if (svc.isNull() || flightId.isNull() || parkingId.isNull())
+	if (svc.isNull() || airplaneId.isNull() || parkingId.isNull())
 		return _log.errorRet(ProcessStatus::Nack, "bad accpet message format");
 
 	if (svc != "follow_me")
 		return _log.errorRet(ProcessStatus::Nack, "get accept message from" + svc);
 
-	_log.info("got accept message from " + svc + " flightId: "
-	          + flightId + " parkingId: " + parkingId);
+	_log.info("got accept message from " + svc + " airplaneId: "
+	          + airplaneId + " parkingId: " + parkingId);
 
-	auto &airplain = _airplains[flightId];
+	auto &airplain = _airplains[airplaneId];
 	airplain.setParkingId(parkingId);
 
-	if (_sender.postServiceMsg(airplain.state(), flightId, parkingId))
+	if (_sender.postServiceMsg(airplain.state(), airplaneId, parkingId))
 		return _log.errorRet(ProcessStatus::Error, "fail to post service message");
 
 	return ProcessStatus::Ack;
@@ -86,25 +86,25 @@ GtcLogic::ProcessStatus
 GtcLogic::processMaintainRequest(const QJsonDocument &doc)
 {
 	auto svcObj = doc["service"];
-	auto flightObj = doc["flight_id"];
-	if (svcObj.isUndefined() || flightObj.isUndefined())
+	auto airplaneObj = doc["airplane_id"];
+	if (svcObj.isUndefined() || airplaneObj.isUndefined())
 		return _log.errorRet(ProcessStatus::Nack, "bad maintain message fields");
 
 	auto svc = svcObj.toString();
-	auto flightId = flightObj.toString();
-	if (svc.isNull() || flightId.isNull())
+	auto airplaneId = airplaneObj.toString();
+	if (svc.isNull() || airplaneId.isNull())
 		return _log.errorRet(ProcessStatus::Nack, "bad maintain message format");
 
-	auto airplain = _airplains.find(flightId);
+	auto airplain = _airplains.find(airplaneId);
 	if (airplain == _airplains.end())
-		return _log.errorRet(ProcessStatus::Nack, "airplain not found");
+		return _log.errorRet(ProcessStatus::Nack, "airplane not found");
 
-	_log.info("got maintain message from " + svc + " flightId: " + flightId);
+	_log.info("got maintain message from " + svc + " airplaneId: " + airplaneId);
 	Airplain::State current = airplain->state();
 	Airplain::State next = airplain->maintain(svc);
 
 	if (next == Airplain::State::Away) {
-		_log.info("Airplain " + flightId + " away");
+		_log.info("Airplain " + airplaneId + " away");
 		_airplains.erase(airplain);
 		return ProcessStatus::Ack;
 	}
@@ -112,7 +112,7 @@ GtcLogic::processMaintainRequest(const QJsonDocument &doc)
 	if (next == current)
 		return ProcessStatus::Ack;
 
-	if (_sender.postServiceMsg(next, flightId, airplain->getParkingId()))
+	if (_sender.postServiceMsg(next, airplaneId, airplain->getParkingId()))
 		return _log.errorRet(ProcessStatus::Error, "fail post service message");
 
 	return ProcessStatus::Ack;
@@ -208,11 +208,11 @@ qint32 GtcLogic::readHostData(const QJsonObject &data)
 	if (portObj.isUndefined())
 		return _log.errorRet(EINVAL, "port not found");
 
-	_hostname      = hostnameObj.toString();
-	_vhost         = vhostObj.toString();
-	_password      = passwdObj.toString();
-	_username      = userObj.toString();
-	_port          = portObj.toInt();
+	_hostname = hostnameObj.toString();
+	_vhost    = vhostObj.toString();
+	_password = passwdObj.toString();
+	_username = userObj.toString();
+	_port     = portObj.toInt();
 
 	return 0;
 }
@@ -228,10 +228,10 @@ qint32 GtcLogic::readLogicSettings(const QJsonObject &data)
 	        bindingKeyObj.isUndefined() || consumerObj.isUndefined())
 		return _log.errorRet(EINVAL, "some stream data are missing");
 
-	_exchange      = exchangeObj.toString();
-	_exchangeType  = exchTypeObj.toString();
-	_bindingKey    = bindingKeyObj.toString();
-	_consumerName  = consumerObj.toString();
+	_exchange     = exchangeObj.toString();
+	_exchangeType = exchTypeObj.toString();
+	_bindingKey   = bindingKeyObj.toString();
+	_consumerName = consumerObj.toString();
 
 	return 0;
 }

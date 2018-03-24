@@ -22,7 +22,7 @@ public:
 
 	qint32 postMovementMsg(const QString &src, const QString &dst,
 						   const QString &svc, const amqp_basic_properties_t *prop);
-	qint32 postServiceMsg(Airplain::State state, const QString &flightId, const QString &parkingId);
+	qint32 postServiceMsg(Airplain::State state, const QString &airplaneId, const QString &parkingId);
 };
 
 #endif // AMQP_SENDER_H

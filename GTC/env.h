@@ -26,6 +26,7 @@ struct Environment {
 	const QString ServiceRequest  = "service";
 
 	const QString PassangerGate   = "PassengerGate1";
+	const QString BaggageGate     = "BaggageGate1";
 
 	const QString NeedMovement    = "need";
 	const QString DoneMovement    = "done";

@@ -31,12 +31,13 @@ qint32 AmqpSender::postMovementMsg(const QString &src, const QString &dst,
 	return (r == AMQP_STATUS_OK) ? 0 : -1;
 }
 
-qint32 AmqpSender::postServiceMsg(Airplain::State state, const QString &flightId, const QString &parkingId)
+qint32 AmqpSender::postServiceMsg(Airplain::State state, const QString &airplaneId, const QString &parkingId)
 {
 	_post_prop.reply_to = _env.queuename;
 
 	QJsonObject request;
-	request["flight_id"] = flightId;
+	request["airplane_id"] = airplaneId;
+	request["request"] = "service";
 
 	qint32 r1 = 0, r2 = 0;
 	switch (state) {
@@ -51,34 +52,36 @@ qint32 AmqpSender::postServiceMsg(Airplain::State state, const QString &flightId
 		             QJsonDocument(request).toJson(QJsonDocument::Compact));
 
 		request["service"] = "baggage";
+		request["gate_id"] = _env.BaggageGate;
 		request["parking_id"] = parkingId + "Baggage";
 		_log.info("post service (unload) message to baggage");
 		r2 = publish(amqp_cstring_bytes(_env.bagQueue.constData()), &_post_prop,
 		             QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
 	case Airplain::State::Fueling:
-		request.insert("service", "fuel");
+		request["service"] = "fuel";
 		request["parking_id"] = parkingId + "Fuel";
 		_log.info("post service message to fuel");
 		r1 = r2 = publish(amqp_cstring_bytes(_env.fuelQueue.constData()), &_post_prop,
 		                  QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
 	case Airplain::State::Loading:
-		request.insert("service", "bus");
-		request.insert("action", "load");
-		request.insert("gate_id", _env.PassangerGate);
+		request["service"] = "bus";
+		request["action"] = "load";
+		request["gate_id"] = _env.PassangerGate;
 		request["parking_id"] = parkingId + "Bus";
 		_log.info("post service (load) message to bus");
 		r1 = publish(amqp_cstring_bytes(_env.busQueue.constData()), &_post_prop,
 		             QJsonDocument(request).toJson(QJsonDocument::Compact));
 		request["service"] = "baggage";
+		request["gate_id"] = _env.BaggageGate;
 		request["parking_id"] = parkingId + "Baggage";
 		_log.info("post service (load) message to baggage");
 		r2 = publish(amqp_cstring_bytes(_env.bagQueue.constData()), &_post_prop,
 		             QJsonDocument(request).toJson(QJsonDocument::Compact));
 		break;
 	case Airplain::State::Departure:
-		request.insert("service", "follow_me");
+		request["service"] = "follow_me";
 		request["parking_id"] = parkingId + "FollowMe";
 		_log.info("post service message to follow_me");
 		r1 = r2 = publish(amqp_cstring_bytes(_env.followMeQueue.constData()), &_post_prop,
