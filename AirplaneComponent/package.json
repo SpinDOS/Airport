@@ -25,7 +25,8 @@
     "node-rest-client": "^3.1.0",
     "reflect-metadata": "^0.1.12",
     "request": "^2.85.0",
-    "request-promise": "^4.2.2"
+    "request-promise": "^4.2.2",
+    "sync-request": "^6.0.0"
   },
   "devDependencies": {
     "guid-typescript": "^1.0.7",

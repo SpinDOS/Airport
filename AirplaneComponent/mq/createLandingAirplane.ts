@@ -1,28 +1,28 @@
-import { IAirplaneCreateReq, validateAirplaneCreateReq, IFLightReq } from "../model/validation/airplaneCreateReq";
-import { generateRandomModel, IAirplaneModel } from "../model/airplaneModel";
 import { Guid } from "guid-typescript";
+
+import { IMQMessage } from "../model/validation/mqMessage";
+import * as mq from "../mq/mq";
+
+import * as logger from "../utils/logger";
+import * as formatter from "../utils/formatter";
+import { onApiError } from "../errors/connectionError";
+
+import { passengersUrl, PasAndBag, parseArrayOfPassengers,
+  parseGenerateResponse, post as PassAPIPost } from "../webapi/passengersAPI";
+
+import * as airplanePool from "../airPlanePool";
+
+import { IResponsePassenger } from "../model/validation/passBagCreateRes";
+
+import { generateRandomModel, IAirplaneModel } from "../model/airplaneModel";
 import { IAirplane } from "../model/airplane";
+import { IFlight } from "../model/flight";
 import { IPassenger } from "../model/passenger";
 import { IBaggage } from "../model/baggage";
-import * as logger from "../utils/logger";
-import * as airplanePool from "../airPlanePool";
-import * as mq from "../mq/mq";
-import { Message } from "amqp-ts";
-import * as formatter from "../utils/formatter";
-import { IMQMessage } from "../model/validation/mqMessage";
-import * as rp from "request-promise";
-import { ConnectionError, onApiError } from "../errors/connectionError";
-import { IFlight } from "../model/flight";
-import { IPassBagCreateRes, validatePasBagCreateResponse } from "../model/validation/passBagCreateRes";
-import { isNotEmptyString, strToPOCO } from "../utils/validation";
-import { ValidationError } from "../errors/validationError";
-import * as assert from "../utils/assert";
-import { passengersUrl } from "../webapi/httpServer";
 
-class PasAndBag {
-  constructor(public readonly passengers: IPassenger[],
-    public readonly baggage: IBaggage[]) { }
-}
+import { IAirplaneCreateReq, validateAirplaneCreateReq, IFLightReq } from "../model/validation/airplaneCreateReq";
+
+
 
 export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to create airplane");
@@ -40,7 +40,7 @@ export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
     model: airplaneModel,
 
     landingFlight: createLandingFlight(createReq, pasAndBag),
-    departureFlight: new LazyFlight(createReq.departureFlight.id, createReq.departureFlight.code),
+    departureFlight: new LazyFlight(createReq.departureFlight),
 
     fuel: fuel,
 
@@ -48,7 +48,7 @@ export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
     baggages: pasAndBag.baggage,
 
     status: {
-      type: AirplaneStatus.WaitingForLanding,
+      type: AirplaneStatus.OnParkingAfterLandingLoaded,
       additionalInfo: { }
     },
   };
@@ -77,9 +77,7 @@ function randomFuel(maxFuel: number): number {
   return Math.max(fuel, maxFuel * 0.2);
 }
 
-async function generatePasAndBagFromAPI(
-  airplaneId: Guid, flightReq: IFLightReq): Promise<PasAndBag> {
-
+async function generatePasAndBagFromAPI(airplaneId: Guid, flightReq: IFLightReq): Promise<PasAndBag> {
   let body: any = {
     flightID: flightReq.id.toString(),
     pas: flightReq.passengersCount,
@@ -88,38 +86,10 @@ async function generatePasAndBagFromAPI(
     transportID: airplaneId.toString()
   };
 
-  return rp.post(passengersUrl + "generate_flight", {
-    headers: {"content-type": "application/json"},
-    body: JSON.stringify(body)
-  })
-  .catch(onApiError)
-  .then(parseResponse);
+  return PassAPIPost("generate_flight", body).then(parseGenerateResponse);
 }
 
-function parseResponse(data: any): PasAndBag {
-  data = strToPOCO(data);
-  let response: IPassBagCreateRes = validatePasBagCreateResponse(data);
-
-  let passengers: IPassenger[] = response.passengers.map(p => {
-    return {
-      id: p.id,
-      name: p.first_name,
-      baggage: p.luggage,
-    };
-  });
-
-  let baggages: IBaggage[] =
-    response.passengers.filter(p => p.luggage !== "None").map(p => p.luggage as Guid)
-    .concat(response.service_luggage)
-    .map(guid => {
-      return { id: guid };
-    });
-
-  return new PasAndBag(passengers, baggages);
-}
-
-function createLandingFlight(createReq: IAirplaneCreateReq,
-  pasAndBag: PasAndBag): IFlight {
+function createLandingFlight(createReq: IAirplaneCreateReq, pasAndBag: PasAndBag): IFlight {
   return {
     id: createReq.landingFlight.id,
     code: createReq.landingFlight.code,
@@ -134,47 +104,57 @@ function sendMQtoLand(airplane: IAirplane): void {
     request: "landing",
     aircraftId: airplane.id.toString(),
   };
-  mq.send(message, mq.followMeEndpoint);
+
+  mq.send(message, mq.followMeMQ);
 }
 
-class LazyFlight implements IFlight {
-  constructor(public readonly id: Guid, public readonly code: string) { }
+export class LazyFlight implements IFlight {
+  constructor(flightReq: IFLightReq) {
+    this.id = flightReq.id;
+    this.code = flightReq.code;
+    this._passengersCount = flightReq.passengersCount;
+    this._baggageCount = flightReq.serviceBaggageCount;
+  }
 
   private _initialized: boolean = false;
-  private _passengersCount!: number;
-  private _baggageCount!: number;
+  private _passengersCount: number;
+  private _baggageCount: number;
+
+  public readonly id: Guid;
+  public readonly code: string;
 
   get passengersCount(): number {
-    if (!this._initialized) {
-      this.initialize();
-    }
+    this.initialize();
     return this._passengersCount;
   }
 
   get baggageCount(): number {
-    if (!this._initialized) {
-      this.initialize();
-    }
+    this.initialize();
     return this._baggageCount;
   }
 
   private initialize(): void {
-    let result: any = undefined;
-    let qs: object = { flight: this.id.toString() };
-
-    rp.get(passengersUrl + "passengers", { qs: qs })
-    .catch(onApiError)
-    .then(parseResponse)
-    .catch(err => result = err || new Error("Unknown error"));
-
-    while (!result) { /* wait */ }
-
-    if (!(result instanceof PasAndBag)) {
-      throw result;
+    if (this._initialized) {
+      return;
     }
 
-    this._passengersCount = result.passengers.length;
-    this._baggageCount = result.passengers.length;
+    let body: string;
+    try {
+      let request: any = require("sync-request");
+      let response: any = request("GET", passengersUrl + "/passengers");
+      let encoding: string = (response.headers && response.headers["content-encoding"] &&
+                              response.headers["content-encoding"].toString()) || "utf8";
+      body = response.getBody(encoding);
+    } catch (e) {
+      onApiError("Passenger API", e);
+      throw new Error("Passenger API unknown error"); // never triggered
+    }
+
+    let passengers: IResponsePassenger[] = parseArrayOfPassengers(body);
+
+    this._passengersCount = passengers.length;
+    this._baggageCount += passengers.filter(p => p.luggage !== "None").length;
+
     this._initialized = true;
   }
 }
