@@ -35,7 +35,7 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {
-  let duration: number = loadReq.baggages.length * 125;
+  let duration: number = loadReq.baggages.length * 600;
 
   visualizeLoad(loadReq, duration);
   await delay(duration);
