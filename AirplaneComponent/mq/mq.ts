@@ -2,22 +2,6 @@ import * as Amqp from "amqplib";
 import { consumer } from "./mqConsumer";
 import * as logger from "../utils/logger";
 
-const connectOptions: Amqp.Options.Connect = {
-  hostname: "duckbill.rmq.cloudamqp.com",
-  username: "aazhpoyi",
-  password: "wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK",
-  protocol: "amqps",
-  vhost: "aazhpoyi",
-};
-
-// const connectOptions: Amqp.Options.Connect = {
-//   hostname: "0.0.0.0",
-//   port: 5672,
-//   username: "user",
-//   password: "password",
-//   protocol: "amqp",
-// };
-
 export let connection: Amqp.Connection;
 export let channel: Amqp.Channel;
 export let myQueue: Amqp.Replies.AssertQueue;
@@ -40,7 +24,7 @@ export async function send(data: object, to: string, correlationId?: any ): Prom
 }
 
 export async function start(): Promise<void> {
-  connection = await Amqp.connect(connectOptions);
+  connection = await Amqp.connect(getConnectonUrl());
   channel = await connection.createChannel();
 
   await createQueues();
@@ -62,4 +46,14 @@ async function createQueues(): Promise<void> {
   await channel.assertQueue(followMeMQ, options);
   await channel.assertQueue(fuelAnswerMQ, options);
   await channel.assertQueue(visualizerMQ, options);
+}
+
+function getConnectonUrl(): string {
+  // tslint:disable-next-line:no-string-literal
+  let url: string | undefined = process.env["mqUrl"];
+  if (url) {
+    return url;
+  }
+
+  throw new Error("Set environment variable 'mqUrl' to RabbitMQ server url");
 }
