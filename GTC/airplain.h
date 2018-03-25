@@ -2,8 +2,10 @@
 #define AIRPLAIN_H
 
 #include <QObject>
+#include "logger.h"
 
-struct Airplain {
+class Airplain {
+public:
 	enum class State {
 		Unloading,
 		Fueling,
@@ -12,35 +14,21 @@ struct Airplain {
 		Away
 	};
 
-	bool isBusUnload = false, isBaggageUnload = false;
-	bool isBusLoad = false, isBaggageLoad = false;
+private:
+	bool _isBusUnload = false, _isBaggageUnload = false;
+	bool _isBusLoad = false, _isBaggageLoad = false;
 
-	State state = State::Unloading;
-	QString parkingId;
+	State _state = State::Unloading;
+	QString _parkingId;
 
-	State nextState()
-	{
-		switch (state) {
-		case State::Unloading:
-			if (isBusUnload && isBaggageUnload)
-				state = State::Fueling;
-			break;
-		case State::Fueling:
-			state = State::Loading;
-			break;
-		case State::Loading:
-			if (isBusLoad && isBaggageLoad)
-				state = State::Departure;
-			break;
-		case State::Departure:
-			state = State::Away;
-			break;
-		default:
-			break;
-		}
+public:
+	State maintain(const QString &svc);
 
-		return state;
-	}
+	State state();
+
+	void setParkingId(const QString &parkingId);
+
+	const QString &getParkingId();
 };
 
 

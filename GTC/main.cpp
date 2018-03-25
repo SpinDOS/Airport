@@ -96,11 +96,3 @@ int main(int argc, char* argv[])
 	start();
 	return 0;
 }
-
-/*
-foreach (const auto &a, _airplains) {
-	qDebug() << "Airplain" << a.parkingId << "state" << (int)a.state;
-	qDebug() << "BusUnload" << a.isBusUnload << "BaggageUnload" << a.isBaggageUnload;
-	qDebug() << "BusLoad" << a.isBusLoad<< "BaggageLoad" << a.isBaggageLoad;
-}
-*/

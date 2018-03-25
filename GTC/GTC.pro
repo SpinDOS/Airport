@@ -10,8 +10,9 @@ CONFIG -= app_bundle
 
 SOURCES += main.cpp \
 	gtc.cpp \
-    amqp_sender.cpp \
-    traffic_control.cpp
+    traffic_control.cpp \
+    airplain.cpp \
+    sender.cpp
 
 
 unix:!macx: LIBS += -L$$PWD/lib/ -lrabbitmq
@@ -22,8 +23,8 @@ DEPENDPATH += $$PWD/.
 HEADERS += \
 	gtc.h \
     env.h \
-    amqp_sender.h \
     logger.h \
     airplain.h \
-    traffic_control.h
+    traffic_control.h \
+    sender.h
 
