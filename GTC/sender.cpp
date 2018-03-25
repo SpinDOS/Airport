@@ -16,19 +16,19 @@ AmqpSender::AmqpSender(const Environment &e)
 qint32 AmqpSender::declareClientQueues()
 {
 	_log.info("declaring queue " + QString(_env.busQueue));
-	amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(_env.busQueue.constData()),
+	amqp_queue_declare(_env.connect, _env.channel, amqp_cstring_bytes(_env.busQueue.constData()),
 	                   0, 1, 0, 0, amqp_empty_table);
 
 	_log.info("declaring queue " + QString(_env.bagQueue));
-	amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(_env.bagQueue.constData()),
+	amqp_queue_declare(_env.connect, _env.channel, amqp_cstring_bytes(_env.bagQueue.constData()),
 	                   0, 1, 0, 0, amqp_empty_table);
 
 	_log.info("declaring queue " + QString(_env.fuelQueue));
-	amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(_env.fuelQueue.constData()),
+	amqp_queue_declare(_env.connect, _env.channel, amqp_cstring_bytes(_env.fuelQueue.constData()),
 	                   0, 1, 0, 0, amqp_empty_table);
 
 	_log.info("declaring queue " + QString(_env.followMeQueue));
-	amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(_env.followMeQueue.constData()),
+	amqp_queue_declare(_env.connect, _env.channel, amqp_cstring_bytes(_env.followMeQueue.constData()),
 	                   0, 1, 0, 0, amqp_empty_table);
 
 	auto status = amqp_get_rpc_reply(_env.connect);
@@ -66,7 +66,7 @@ qint32 AmqpSender::postServiceMsg(const amqp_bytes_t &queue, const QJsonObject &
 
 qint32 AmqpSender::publish(const amqp_bytes_t &queue, const amqp_basic_properties_t *prop, const QByteArray &msg)
 {
-	return amqp_basic_publish(_env.connect, 1, amqp_empty_bytes,
+	return amqp_basic_publish(_env.connect, _env.channel, amqp_empty_bytes,
 	                          queue, 0, 0, prop,
 	                          amqp_cstring_bytes(msg.constData()));
 }

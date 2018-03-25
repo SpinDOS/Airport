@@ -19,6 +19,7 @@ struct Environment {
 
 	amqp_connection_state_t connect = NULL;
 	amqp_bytes_t queuename = {0, NULL};
+	amqp_channel_t channel = 1;
 
 	const QString MovementRequest = "movement";
 	const QString MaintainRequest = "maintain";

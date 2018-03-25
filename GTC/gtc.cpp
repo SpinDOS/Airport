@@ -166,7 +166,7 @@ qint32 GtcLogic::open()
 		return _log.errorRet(EAGAIN, amqp_error_string(_status.reply_type));
 
 	_log.info("opening channel");
-	amqp_channel_open(_env.connect, 1);
+	amqp_channel_open(_env.connect, _env.channel);
 	if (checkConnection())
 		return EAGAIN;
 
@@ -201,13 +201,13 @@ qint32 GtcLogic::openMsgQueueStream()
 	const auto &consumer = _consumerName.toStdString();
 
 	_log.info("declaring exchange");
-	amqp_exchange_declare(_env.connect, 1, amqp_cstring_bytes(exch.c_str()),
+	amqp_exchange_declare(_env.connect, _env.channel, amqp_cstring_bytes(exch.c_str()),
 	                      amqp_cstring_bytes(exchType.c_str()), 0, 1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
 	_log.info("declaring queue");
-	auto r = amqp_queue_declare(_env.connect, 1, amqp_cstring_bytes(bindKey.c_str()),
+	auto r = amqp_queue_declare(_env.connect, _env.channel, amqp_cstring_bytes(bindKey.c_str()),
 	                            0, 1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
@@ -217,13 +217,13 @@ qint32 GtcLogic::openMsgQueueStream()
 		return _log.errorRet(EAGAIN, "out of memory");
 
 	_log.info("bind queue");
-	amqp_queue_bind(_env.connect, 1, _env.queuename, amqp_cstring_bytes(exch.c_str()),
+	amqp_queue_bind(_env.connect, _env.channel, _env.queuename, amqp_cstring_bytes(exch.c_str()),
 	                amqp_cstring_bytes(bindKey.c_str()), amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
 
 	_log.info("create basic consume: " + _consumerName);
-	amqp_basic_consume(_env.connect, 1, _env.queuename, amqp_cstring_bytes(consumer.c_str()),
+	amqp_basic_consume(_env.connect, _env.channel, _env.queuename, amqp_cstring_bytes(consumer.c_str()),
 	                   1, 0, 0, amqp_empty_table);
 	if (checkConnection())
 		return EAGAIN;
@@ -259,20 +259,20 @@ qint32 GtcLogic::process()
 
 	switch (st) {
 	case ProcessStatus::Ack:
-		_log.info("ack " + _consumerName + " message");
-		amqp_basic_ack(_env.connect, 1, envelope.delivery_tag, 0);
+		_log.info("ack message");
+		amqp_basic_ack(_env.connect, _env.channel, envelope.delivery_tag, 0);
 		break;
 	case ProcessStatus::Retry:
 		_log.info("requeue " + request + " message");
-		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, true);
+		amqp_basic_nack(_env.connect, _env.channel, envelope.delivery_tag, 0, true);
 		break;
 	case ProcessStatus::Nack:
 		_log.warn("bad json data");
-		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, false);
+		amqp_basic_nack(_env.connect, _env.channel, envelope.delivery_tag, 0, false);
 		break;
 	case ProcessStatus::Error:
 		_log.error("fail to process " + request + " message");
-		amqp_basic_nack(_env.connect, 1, envelope.delivery_tag, 0, true);
+		amqp_basic_nack(_env.connect, _env.channel, envelope.delivery_tag, 0, true);
 		break;
 	}
 	amqp_destroy_envelope(&envelope);
@@ -286,7 +286,7 @@ void GtcLogic::close()
 	amqp_bytes_free(_env.queuename);
 	_env.queuename = {0, NULL};
 
-	amqp_channel_close(_env.connect, 1, AMQP_REPLY_SUCCESS);
+	amqp_channel_close(_env.connect, _env.channel, AMQP_REPLY_SUCCESS);
 	amqp_connection_close(_env.connect, AMQP_REPLY_SUCCESS);
 }
 
