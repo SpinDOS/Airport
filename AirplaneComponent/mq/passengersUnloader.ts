@@ -1,3 +1,4 @@
+const unloadSpeed: number = 400;
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -33,7 +34,7 @@ export async function unloadPassengers(mqMessage: IMQMessage): Promise<void> {
 
 async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Promise<IPassenger[]> {
   let count: number = Math.min(unloadReq.count, airplane.passengers.length);
-  let duration: number = count * 500;
+  let duration: number = count * unloadSpeed;
 
   let passengers: IPassenger[] = airplane.passengers.splice(0, count);
   changePassengersStatus(unloadReq, passengers);

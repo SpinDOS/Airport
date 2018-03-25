@@ -1,3 +1,6 @@
+const minDuration: number = 7000;
+const maxDuration: number = 15000;
+
 import { delay } from "bluebird";
 
 import { IMQMessage } from "../model/validation/mqMessage";
@@ -27,7 +30,7 @@ export async function landing(mqMessage: IMQMessage): Promise<void> {
 }
 
 async function land(landingReq: ILandingReq): Promise<void> {
-  let duration: number = randomInt(2000, 10000);
+  let duration: number = randomInt(minDuration, maxDuration);
   visualizeLanding(landingReq, duration);
   await delay(duration);
 }

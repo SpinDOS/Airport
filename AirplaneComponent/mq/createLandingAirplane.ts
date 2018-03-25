@@ -1,3 +1,6 @@
+const minFuelRatio: number = 0.1;
+const maxFuelRatio: number = 0.8;
+
 import { Guid } from "guid-typescript";
 
 import { IMQMessage } from "../model/validation/mqMessage";
@@ -70,11 +73,11 @@ function randomModel(createReq: IAirplaneCreateReq): IAirplaneModel {
 
 function randomFuel(maxFuel: number): number {
   let fuel: number = Math.random() * maxFuel;
-  if (fuel > maxFuel * 0.75) {
+  if (fuel > maxFuel * maxFuelRatio) {
     fuel /= 2;
   }
 
-  return Math.max(fuel, maxFuel * 0.2);
+  return Math.max(fuel, maxFuel * minFuelRatio);
 }
 
 async function generatePasAndBagFromAPI(airplaneId: Guid, flightReq: IFLightReq): Promise<PasAndBag> {

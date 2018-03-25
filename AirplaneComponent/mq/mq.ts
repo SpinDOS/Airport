@@ -11,7 +11,7 @@ const connectOptions: Amqp.Options.Connect = {
 };
 
 // const connectOptions: Amqp.Options.Connect = {
-//   hostname: "10.99.211.105",
+//   hostname: "0.0.0.0",
 //   port: 5672,
 //   username: "user",
 //   password: "password",

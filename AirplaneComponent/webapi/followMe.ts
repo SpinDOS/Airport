@@ -1,3 +1,5 @@
+const minFuelRatio: number = 0.6;
+
 import Router, { IRouterContext } from "koa-router";
 import HttpStatus from "http-status-codes";
 
@@ -73,7 +75,7 @@ function startFollowingToStrip(ctx: IRouterContext): void {
         throw new LogicalError(formatter.airplane(airplane) + " is not loaded for departure");
   }
 
-  if (airplane.fuel < airplane.model.maxFuel * 0.75) {
+  if (airplane.fuel < airplane.model.maxFuel * minFuelRatio) {
     throw new LogicalError(formatter.airplane(airplane) + " is not fuelled enough");
   }
 

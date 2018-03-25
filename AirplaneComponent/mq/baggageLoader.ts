@@ -1,3 +1,5 @@
+const loadSpeed: number = 600;
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -31,7 +33,7 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {
-  let duration: number = loadReq.baggages.length * 600;
+  let duration: number = loadReq.baggages.length * loadSpeed;
 
   visualizeLoad(loadReq, duration);
   await delay(duration);

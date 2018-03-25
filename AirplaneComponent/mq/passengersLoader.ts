@@ -1,3 +1,5 @@
+const loadSpeed: number = 500;
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -39,8 +41,7 @@ async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers
     throw new LogicalError("Too many passengers to load");
   }
 
-  const durPerPas: number = 500;
-  let duration: number = passengers.length * durPerPas;
+  let duration: number = passengers.length * loadSpeed;
   visualizeLoad(loadReq, duration);
 
   for (let pas of passengers) {
@@ -48,7 +49,7 @@ async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers
       throw new LogicalError("Passenger " + formatter.passenger(pas) + " can not be loaded twice");
     }
 
-    await delay(durPerPas);
+    await delay(loadSpeed);
     airplane.passengers.push(pas);
   }
 }

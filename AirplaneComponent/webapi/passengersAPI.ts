@@ -1,3 +1,5 @@
+export const passengersUrl: string = "http://quantum0.pythonanywhere.com/";
+
 import { Guid } from "guid-typescript";
 import * as rp from "request-promise";
 
@@ -10,9 +12,6 @@ import { IBaggage } from "../model/baggage";
 import { IResponsePassenger, validatePassenger,
   IPassBagCreateRes, validatePasBagCreateResponse } from "../model/validation/passBagCreateRes";
 
-
-
-export const passengersUrl: string = "http://quantum0.pythonanywhere.com/";
 
 const headers: any = {
   "content-type": "application/json",

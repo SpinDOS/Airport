@@ -1,3 +1,5 @@
+const unloadSpeed: number = 500;
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -33,7 +35,7 @@ export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
 
 async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promise<IBaggage[]> {
   let count: number = Math.min(unloadReq.count, airplane.baggages.length);
-  let duration: number = count * 500;
+  let duration: number = count * unloadSpeed;
 
   visualizeUnload(unloadReq, duration);
   await delay(duration);

@@ -1,3 +1,5 @@
+const refuelSpeed: number = 50;
+
 import { delay } from "bluebird";
 
 import * as assert from "../utils/assert";
@@ -33,7 +35,7 @@ async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane): Promise
     throw new LogicalError(`Can not refuel ${formatter.airplane(airplane)} for ${volume} units of fuel`);
   }
 
-  let duration: number = volume * 50;
+  let duration: number = volume * refuelSpeed;
   visualizeFuelling(fuelReq, duration);
   await delay(duration);
 }

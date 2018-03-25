@@ -1,3 +1,5 @@
+const duration: number = 10000;
+
 import { delay } from "bluebird";
 import { Guid } from "guid-typescript";
 
@@ -16,8 +18,6 @@ import * as airplanePool from "../airPlanePool";
 import { validateFlyReq } from "../model/validation/fly";
 
 
-
-const duration: number = 3000;
 export async function fly(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to fly");
 

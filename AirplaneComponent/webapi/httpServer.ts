@@ -1,3 +1,6 @@
+const host: string = "0.0.0.0";
+const port: number = 8081;
+
 import Koa from "koa";
 import Router, { IRouterContext } from "koa-router";
 import { Middleware } from "koa-compose";
@@ -18,10 +21,6 @@ import { ConnectionError } from "../errors/connectionError";
 
 import * as followMe from "./followMe";
 import * as info from "./info";
-
-
-const host: string = "0.0.0.0";
-const port: number = 8081;
 
 let app: Koa = new Koa();
 
