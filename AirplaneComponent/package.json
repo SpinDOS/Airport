@@ -18,18 +18,17 @@
     "@types/request-promise": "^4.1.41",
     "amqplib": "^0.5.2",
     "bluebird": "^3.5.1",
+    "guid-typescript": "^1.0.7",
     "http-status-codes": "^1.3.0",
     "koa": "^2.5.0",
     "koa-bodyparser": "^4.2.0",
     "koa-router": "^7.4.0",
     "node-rest-client": "^3.1.0",
-    "reflect-metadata": "^0.1.12",
     "request": "^2.85.0",
     "request-promise": "^4.2.2",
-    "sync-request": "^6.0.0"
-  },
-  "devDependencies": {
-    "guid-typescript": "^1.0.7",
+    "sync-request": "^6.0.0",
+    "tsd": "^0.6.5",
     "typescript": "^2.7.2"
-  }
+  },
+  "devDependencies": {}
 }
