@@ -3,7 +3,7 @@ import { ValidationError } from "../../errors/validationError";
 import { isNotEmptyString, isPositiveInt } from "../../utils/utils";
 
 export interface IUnloadPassengersReq {
-  landingFlightId: Guid;
+  airplaneId: Guid;
   busId: string;
   count: number;
 }
@@ -13,9 +13,9 @@ export function validateUnloadPasReq(unloadReq: any): IUnloadPassengersReq {
     throw new ValidationError("Missing passengers unload parameters");
   }
 
-  let landingFlightId: any = unloadReq.landingFlightId;
-  if (!landingFlightId || !Guid.isGuid(landingFlightId)) {
-    throw new ValidationError("Invalid landing flight id to unload passengers: " + landingFlightId);
+  let airplaneId: any = unloadReq.airplaneId;
+  if (!airplaneId || !Guid.isGuid(airplaneId)) {
+    throw new ValidationError("Invalid airplane id to unload passengers: " + airplaneId);
   }
 
   let count: any = unloadReq.count;
@@ -29,14 +29,14 @@ export function validateUnloadPasReq(unloadReq: any): IUnloadPassengersReq {
   }
 
   return {
-    landingFlightId: Guid.parse(landingFlightId),
+    airplaneId: Guid.parse(airplaneId),
     count: count,
     busId: busId,
    };
 }
 
 export interface ILoadPassengersReq {
-  departureFlightId: Guid;
+  airplaneId: Guid;
   busId: string;
   passengers: Guid[];
 }
@@ -54,9 +54,9 @@ export function validateLoadPassengerReq(passengersLoadReq: any): ILoadPassenger
     throw new ValidationError("Passengers load info not found");
   }
 
-  let departureFlightId: any = passengersLoadReq.departureFlightId;
-  if (!departureFlightId || !Guid.isGuid(departureFlightId)) {
-    throw new ValidationError("Invalid departure flight id to unload passengers: " + departureFlightId);
+  let airplaneId: any = passengersLoadReq.airplaneId;
+  if (!airplaneId || !Guid.isGuid(airplaneId)) {
+    throw new ValidationError("Invalid airplane id to unload passengers: " + airplaneId);
   }
 
   let busId: any = passengersLoadReq.busId;
@@ -70,7 +70,7 @@ export function validateLoadPassengerReq(passengersLoadReq: any): ILoadPassenger
   }
 
   return {
-    departureFlightId: Guid.parse(departureFlightId),
+    airplaneId: Guid.parse(airplaneId),
     busId: passengersLoadReq.busId,
     passengers: passengers.map(validatePassengerId),
   };

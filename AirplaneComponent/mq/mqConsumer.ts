@@ -13,7 +13,8 @@ import { unloadBaggage } from "./baggageUnloader";
 import { landing } from "./landing";
 import { refuel } from "./refuel";
 import { fly } from "./fly";
-import { loadPassengers, unloadPassengers } from "./passengersLoader";
+import { loadPassengers } from "./passengersLoader";
+import { unloadPassengers } from "./passengersUnloader";
 
 
 
