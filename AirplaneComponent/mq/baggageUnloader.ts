@@ -15,7 +15,7 @@ import * as airplanePool from "../airPlanePool";
 
 import { IBaggage } from "../model/baggage";
 import { validateUnloadBaggageReq, IUnloadBaggageReq } from "../model/validation/baggageReq";
-import { checkUnloadEnd, startUnloading, endUnloading } from "../utils/loadHelper";
+import * as helper from "../utils/loadHelper";
 
 
 
@@ -32,7 +32,7 @@ export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
 
   logger.log(`Unloaded ${baggage.length} baggage from ${formatter.airplane(airplane)} to ${unloadReq.carId}. ` +
               `${airplane.baggages.length} left`);
-  checkUnloadEnd(airplane);
+  helper.checkUnloadEnd(airplane);
 }
 
 async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promise<IBaggage[]> {
@@ -46,12 +46,12 @@ async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promis
 }
 
 function updateStatusBeforeUnload(airplane: IAirplane, unloadReq: IUnloadBaggageReq): void {
-  startUnloading(airplane, "baggageCars", unloadReq.carId);
+  helper.startUnloading(airplane, "baggageCars", unloadReq.carId);
   logger.log(formatter.airplane(airplane) + " is unloading baggage to " + unloadReq.carId);
 }
 
 function updateStatusAfterUnload(airplane: IAirplane, unloadReq: IUnloadBaggageReq): void {
-  endUnloading(airplane, "baggageCars", unloadReq.carId);
+  helper.endUnloading(airplane, "baggageCars", unloadReq.carId);
 }
 
 function notifyAboutUnload(baggage: IBaggage[], unloadReq: IUnloadBaggageReq, mqMessage: IMQMessage): void {

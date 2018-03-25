@@ -15,7 +15,7 @@ import * as airplanePool from "../airPlanePool";
 
 import { IBaggage } from "../model/baggage";
 import { ILoadBaggageReq, validateLoadBaggageReq } from "../model/validation/baggageReq";
-import { checkLoadEnd, startLoading, endLoading } from "../utils/loadHelper";
+import * as helper from "../utils/loadHelper";
 
 
 export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
@@ -31,7 +31,7 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
 
   logger.log(`Loaded ${loadReq.baggages.length} baggage from ${loadReq.carId}. ` +
               `${airplane.baggages.length} total`);
-  checkLoadEnd(airplane);
+  helper.checkLoadEnd(airplane);
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {
@@ -51,12 +51,12 @@ function updateStatusBeforeLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): 
     throw new LogicalError(`Can not load ${loadReq.baggages.length} baggage to ` + formatter.airplane(airplane));
   }
 
-  startLoading(airplane, "baggageCars", loadReq.carId);
+  helper.startLoading(airplane, "baggageCars", loadReq.carId);
   logger.log(formatter.airplane(airplane) + " is loading baggage from " + loadReq.carId);
 }
 
 function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): void {
-  endLoading(airplane, "baggageCars", loadReq.carId);
+  helper.endLoading(airplane, "baggageCars", loadReq.carId);
 }
 
 function notifyAboutLoadEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
