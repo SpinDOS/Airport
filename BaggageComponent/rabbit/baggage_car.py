@@ -47,7 +47,7 @@ class BaggageCar:
 
     def consume_reply_to(self):
         channel = get_channel()
-        queue = channel.queue_declare(exclusive=False)
+        queue = channel.queue_declare(exclusive=False, auto_delete=True)
         self.callback_queue = queue.method.queue
         channel.basic_consume(self.get_callback_response, queue=self.callback_queue, no_ack=True)
         channel.start_consuming()
@@ -85,6 +85,7 @@ class BaggageCar:
             "to": location_to,
             "status": "need"
         }
+        print('params to und', json.dumps(params))
         self.channel.basic_publish(exchange=UND_EXCHANGE,
                                    routing_key=UND_ROUTING_KEY,
                                    properties=pika.BasicProperties(
@@ -121,26 +122,28 @@ class BaggageCar:
 
     def handle_query(self, ch, method, props, body):
         try:
+            print('start handling')
+
             params = json.loads(body.decode())
-            validate_response(params, ["action", "request", "service", "gate_id", "flight_id", "parking_id"])
+            validate_response(params, ["action", "request", "service", "gate_id", "airplane_id", "parking_id"])
 
             action = params['action']
-            flight_id = params['flight_id']
+            airplane_id = params['airplane_id']
             gate_id = params['gate_id']
             parking_id = params['parking_id']
-            log_message(f'Got from UND new task: action {action}, flight_id {flight_id}, parking_id {parking_id}')
+            log_message(f'Got from UND new task: action {action}, airplane_id {airplane_id}, parking_id {parking_id}')
 
             if action == 'load':
-                self.load_airplane(flight_id, parking_id, gate_id)
+                self.load_airplane(airplane_id, parking_id, gate_id)
             elif action == 'unload':
-                self.unload_airplane(flight_id, parking_id, gate_id)
+                self.unload_airplane(airplane_id, parking_id, gate_id)
             else:
                 raise Exception('Error. Unknown action')
 
             params = {
                 "service": "baggage",
                 "request": "maintain",
-                "flight_id": flight_id,
+                "airplane_id": airplane_id,
             }
             self.channel.basic_publish(exchange=UND_EXCHANGE,
                                        routing_key=UND_ROUTING_KEY,
@@ -150,7 +153,7 @@ class BaggageCar:
                                        body=json.dumps(params))
 
         except Exception as e:
-            print(e)
+            print('Error', e)
         finally:
             ch.basic_ack(delivery_tag=method.delivery_tag)
 
@@ -158,9 +161,9 @@ class BaggageCar:
             if self.baggage_queue.method.message_count == 0:
                 self.require_route(self.BAGGAGE_GARAGE)
 
-    def unload_airplane(self, flight_id, parking_id, gate_id):
-        log_message(f'Start unload airplane with {flight_id}')
-        content = json.loads(requests.get(f'{AIRPLANE_API}/info?landingFlightId={flight_id}').content.decode())
+    def unload_airplane(self, airplane_id, parking_id, gate_id):
+        log_message(f'Start unload airplane with {airplane_id}')
+        content = json.loads(requests.get(f'{AIRPLANE_API}/info?id={airplane_id}').content.decode())
         log_message(f'Got response from airplane {content}')
         airplane_baggage_count = content[0]['baggageCount']
         if airplane_baggage_count == 0:
@@ -171,8 +174,8 @@ class BaggageCar:
         params = {
             "type": "UnloadBaggage",
             "value": {
-                "landingFlightId": flight_id,
-                "carId": self.id,
+                "airplaneId": airplane_id,
+                "carId": f"Baggage|{self.id}",
                 "count": self.baggage_capacity
             }
         }
@@ -187,6 +190,7 @@ class BaggageCar:
             time.sleep(0.01)
 
         validate_response(self.callback_response, ["baggage"])
+        print('baggage from airplane', self.callback_response["baggage"])
         self.baggage_list = self.callback_response["baggage"]
         self.callback_response = None
 
@@ -194,7 +198,7 @@ class BaggageCar:
 
         self.require_route(gate_id)
         params = {
-            'flight_id': flight_id,
+            'flight_id': airplane_id,
             'baggage_ids': self.baggage_list,
         }
 
@@ -210,11 +214,16 @@ class BaggageCar:
         baggage_list_length = len(self.baggage_list)
         self.baggage_list = []
         if airplane_baggage_count - baggage_list_length > 0:
-            self.unload_airplane(flight_id, parking_id, gate_id)
+            self.unload_airplane(airplane_id, parking_id, gate_id)
 
-    def load_airplane(self, flight_id, parking_id, gate_id):
-        log_message(f'Start load airplane with {flight_id}')
-        content = json.loads(requests.get(f'{BAGGAGE_API}/api/baggage/{flight_id}?length=yes').content.decode())
+    def load_airplane(self, airplane_id, parking_id, gate_id):
+        log_message(f'Start load airplane with {airplane_id}')
+
+        content = json.loads(requests.get(f'{AIRPLANE_API}/info?id={airplane_id}').content.decode())
+        log_message(f'Got response from airplane {content}')
+        departure_flight_id = content[0]['departureFlightId']
+
+        content = json.loads(requests.get(f'{BAGGAGE_API}/api/baggage/{departure_flight_id}?length=yes').content.decode())
         log_message(f'Got {content["baggage_count"]} from baggage component')
 
         baggage_count = content['baggage_count']
@@ -224,20 +233,22 @@ class BaggageCar:
         self.require_route(gate_id)
 
         params = {
-            'flight_id': flight_id,
+            'flight_id': departure_flight_id,
             'count': self.baggage_capacity,
         }
         content = json.loads(requests.delete(f'{BAGGAGE_API}/api/baggage', json=params).content.decode())
         self.baggage_list = content
-        log_message(f'Got from baggage component baggage list for loading to {flight_id} {self.baggage_list}')
+        log_message(f'Got from baggage component baggage list for loading to {airplane_id} {self.baggage_list}')
+
+        self.animate_loading()
 
         self.require_route(parking_id)
 
         params = {
             "type": "LoadBaggage",
             "value": {
-                "departureFlightId": flight_id,
-                "carId": self.id,
+                "airplaneId": airplane_id,
+                "carId": f"Baggage|{self.id}",
                 "baggages": self.baggage_list
             }
         }
@@ -252,22 +263,22 @@ class BaggageCar:
             time.sleep(0.01)
 
         validate_response(self.callback_response, ["result"])
-        if self.callback_response["response"] != "ok":
+        if self.callback_response["result"] != "ok":
             raise Exception("load airplane/incorrect answer result")
-        self.callback_response = []
+        self.callback_response = None
 
         baggage_list_length = len(self.baggage_list)
         self.baggage_list = []
         if baggage_count - baggage_list_length > 0:
-            self.load_airplane(flight_id, parking_id, gate_id)
+            self.load_airplane(airplane_id, parking_id, gate_id)
 
     def visualize(self, location_from, location_to):
-        duration = 5
+        duration = 1
         message = {
             'Type': 'movement',
             'From': location_from,
             'To': location_to,
-            'Transport': f'Baggege|{self.id}',
+            'Transport': f'Baggage|{self.id}',
             'Duration': duration * 1000,
         }
 
@@ -279,7 +290,7 @@ class BaggageCar:
         log_message(f'send message to visualiser from {location_from} to {location_to}')
 
     def animate_loading(self):
-        duration = 5
+        duration = len(self.baggage_list)
         message = {
             'Type': 'animation',
             'AnimationType': 'baggage',
