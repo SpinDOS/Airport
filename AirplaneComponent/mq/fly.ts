@@ -67,12 +67,12 @@ function notifyFollowMe(airplane: IAirplane): void {
   mq.send(messageToFollowme, mq.followMeMQ);
 }
 
-function notifyPassengers(airplane: IAirplane): Promise<void> {
+async function notifyPassengers(airplane: IAirplane): Promise<void> {
   let body: any = {
     flight: airplane.departureFlight.id.toString(),
   };
 
-  return passengersAPI.post("fly", body)
+  await passengersAPI.post("fly", body)
     .catch(e => logger.log(
       `Error notifying passengers about airplane fly: ${formatter.airplane(airplane)}. ` + e.toString()));
 }

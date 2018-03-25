@@ -18,12 +18,12 @@ const headers: any = {
   "content-type": "application/json",
 };
 
-export async function get(url: string, qs?: object): Promise<any> {
+export async function get(url: string, qs?: object): Promise<string> {
   return rp.get(passengersUrl + url, { qs: qs } )
     .catch(e => onApiError("Passenger API", e));
 }
 
-export async function post(url: string, body: object): Promise<any> {
+export async function post(url: string, body: object): Promise<string> {
   return rp.post(passengersUrl + url, {
     headers: headers,
     body: JSON.stringify(body)
@@ -39,6 +39,13 @@ export function parseArrayOfPassengers(data: string): IResponsePassenger[] {
     return poco.map(validatePassenger);
 }
 
+export function mapRespPasToPas(respPas: IResponsePassenger): IPassenger {
+  return {
+    id: respPas.id,
+    name: respPas.first_name,
+    baggageId: respPas.luggage !== "None"? respPas.luggage : undefined,
+  };
+}
 
 export class PasAndBag {
   constructor(public readonly passengers: IPassenger[],
@@ -49,13 +56,7 @@ export function parseGenerateResponse(data: string): PasAndBag {
   let poco: object = strToPOCO(data);
   let response: IPassBagCreateRes = validatePasBagCreateResponse(poco);
 
-  let passengers: IPassenger[] = response.passengers.map(p => {
-    return {
-      id: p.id,
-      name: p.first_name,
-      baggage: p.luggage !== "None"? p.luggage: undefined,
-    };
-  });
+  let passengers: IPassenger[] = response.passengers.map(mapRespPasToPas);
 
   let baggages: IBaggage[] =
     response.passengers.filter(p => p.luggage !== "None").map(p => p.luggage as Guid)
