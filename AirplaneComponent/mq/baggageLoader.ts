@@ -26,12 +26,8 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusBeforeLoad(airplane, loadReq);
   await load(loadReq, airplane);
-  updateStatusAfterLoad(airplane, loadReq);
   notifyAboutLoadEnd(loadReq, mqMessage);
-
-  logger.log(`Loaded ${loadReq.baggages.length} baggage from ${loadReq.carId}. ` +
-              `${airplane.baggages.length} total`);
-  helper.checkLoadEnd(airplane);
+  updateStatusAfterLoad(airplane, loadReq);
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {
@@ -57,6 +53,10 @@ function updateStatusBeforeLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): 
 
 function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): void {
   helper.endLoading(airplane, "baggageCars", loadReq.carId);
+
+  logger.log(`Loaded ${loadReq.baggages.length} baggage from ${loadReq.carId}. ` +
+              `${airplane.baggages.length} total`);
+  helper.checkLoadEnd(airplane);
 }
 
 function notifyAboutLoadEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {

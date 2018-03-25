@@ -22,9 +22,8 @@ export async function landing(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusStart(airplane, landingReq);
   await land(landingReq);
-  updateStatusEnd(airplane);
-
   notifyAboutEnd(landingReq);
+  updateStatusEnd(airplane);
 }
 
 async function land(landingReq: ILandingReq): Promise<void> {
@@ -38,12 +37,12 @@ function updateStatusStart(airplane: IAirplane, landingReq: ILandingReq): void {
 
   airplane.status.type = AirplaneStatus.Landing;
   airplane.status.additionalInfo.stripId = landingReq.stripId;
-  console.log(formatter.airplane(airplane) + " is landing to " + landingReq.stripId);
+  logger.log(formatter.airplane(airplane) + " is landing to " + landingReq.stripId);
 }
 
 function updateStatusEnd(airplane: IAirplane): void {
   airplane.status.type = AirplaneStatus.WaitingForFollowMe;
-  console.log(formatter.airplane(airplane) + " has landed to " + airplane.status.additionalInfo.stripId);
+  logger.log(formatter.airplane(airplane) + " has landed to " + airplane.status.additionalInfo.stripId);
 }
 
 function visualizeLanding(landingReq: ILandingReq, duration: number): void {

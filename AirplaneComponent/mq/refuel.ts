@@ -22,10 +22,8 @@ export async function refuel(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusStart(airplane, fuelReq);
   await refuelInternal(fuelReq, airplane);
-  updateStatusEnd(airplane);
   notifyAboutEnd(fuelReq);
-
-  logger.log(formatter.airplane(airplane) + ` has been refueled up to ${airplane.fuel}/${airplane.model.maxFuel}`);
+  updateStatusEnd(airplane);
 }
 
 async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane): Promise<void> {
@@ -52,6 +50,7 @@ function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): void {
 function updateStatusEnd(airplane: IAirplane): void {
   airplane.status.type = AirplaneStatus.OnParkingEmpty;
   delete airplane.status.additionalInfo.fuelerCarId;
+  logger.log(formatter.airplane(airplane) + ` has been refueled up to ${airplane.fuel}/${airplane.model.maxFuel}`);
 }
 
 function visualizeFuelling(fuelReq: IRefuelReq, duration: number): void {
