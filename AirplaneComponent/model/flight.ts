@@ -1,6 +1,8 @@
-import { Guid } from 'guid-typescript'
+import { Guid } from "guid-typescript";
 
-export interface Flight{
-  id: Guid,
-  code?: string,
+export interface IFlight {
+  readonly id: Guid;
+  readonly code: string;
+  readonly passengersCount: number;
+  readonly baggageCount: number;
 }

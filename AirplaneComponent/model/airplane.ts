@@ -1,20 +1,30 @@
-import { Guid } from 'guid-typescript';
-import { Flight } from './flight'
-import { Passenger } from './passenger';
-import { Baggage } from './baggage';
-import { AirplaneModel } from './airplaneModel';
+import { Guid } from "guid-typescript";
+import { IFlight } from "./flight";
+import { IPassenger } from "./passenger";
+import { IBaggage } from "./baggage";
+import { IAirplaneModel } from "./airplaneModel";
 
-export interface Airplane {
-  readonly id: Guid,
-  readonly model: AirplaneModel,
+export interface IAirplane {
+  readonly id: Guid;
+  readonly model: IAirplaneModel;
 
-  readonly landingFlight: Flight,
-  readonly departureFlight: Flight,
+  readonly landingFlight: IFlight;
+  readonly departureFlight: IFlight;
 
-  fuel: number,
-  passengers: Passenger[],
-  baggages: Baggage[],
+  fuel: number;
+  readonly passengers: IPassenger[];
+  readonly baggages: IBaggage[];
 
-  status: AirplaneStatus,
+  readonly status: {
+    type: AirplaneStatus;
+    additionalInfo: {
+      parkingId?: string,
+      buses?: string[],
+      baggageCars?: string[],
+      followMeCarId?: string,
+      fuelerCarId?: string,
+      stripId?: string,
+     };
+  };
 }
 
