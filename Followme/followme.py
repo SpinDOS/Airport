@@ -37,7 +37,9 @@ except:
     from queue import Queue
 
 
-def sendMovement(carId, fromId, toId):
+
+
+def sendMovement(carId, fromId, toId, status):
     connection = pika.BlockingConnection(pika.URLParameters(
         'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
     channel = connection.channel()
@@ -48,7 +50,8 @@ def sendMovement(carId, fromId, toId):
         "service":"follow_me",
         "request":"movement",
         "from":f"{fromId}",
-        "to":f"{toId}"
+        "to":f"{toId}",
+        "status": f"{status}"
     })
     channel.basic_publish(exchange='',
                           routing_key='gtc.gate',
@@ -70,13 +73,10 @@ def sendMaintain(carId, aircraftId):
 
     channel.queue_declare(queue='gtc.gate', durable=True)
 
-    #flightId = getFlightId(aircraftId)
-
     message = json.dumps({
-        "service":"follow_me",
-        "request":"maintain",
-        "flightid":f"{flightId}",
-        "status":"done"
+        "service": "follow_me",
+        "request": "maintain",
+        "airplane_id": f"{aircraftId}"
     })
     channel.basic_publish(exchange='',
                           routing_key='gtc.gate',
@@ -113,16 +113,27 @@ class Followme(threading.Thread):
         'Strip|3': True,
     }
 
+    answerDict = {}
+
     carLock = threading.RLock()
     parkingLock = threading.RLock()
     stripLock = threading.RLock()
+    answerLock = threading.RLock()
 
     queueLoad = Queue()
     queueTakeoff = Queue()
+    queueAnswer = Queue()
+
 
     def __init__(self):
         threading.Thread.__init__(self)
         self.sendInit()
+
+        for car in self.carDict:
+            self.answerDict[car] = []
+
+        i = 1
+
 
 
     def run(self):
@@ -153,6 +164,18 @@ class Followme(threading.Thread):
                                             t = threading.Thread(target=self.loadboard, args=(self.queueLoad.get(),))
                                             t.start()
                                             self.queueLoad.task_done()
+            if not(self.queueAnswer.empty()):
+                with self.answerLock:
+                    answer = self.queueAnswer.get()
+                    mess = answer['message']
+                    carid = answer['id']
+                    if carid in self.carDict:
+                        self.answerDict[carid].append(mess)
+                    else:
+                        print("нет такой машины: ", carid)
+                    self.queueAnswer.task_done()
+
+
 
 
     def takeoff(self, massege, ):
@@ -162,7 +185,7 @@ class Followme(threading.Thread):
         print(massege)
 
 
-    def sendStrip(self, aircraftid, stripid):
+    def sendStrip(self, aircraftid, stripid, carid):
         connection = pika.BlockingConnection(pika.URLParameters(
             'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
         channel = connection.channel()
@@ -170,7 +193,7 @@ class Followme(threading.Thread):
         channel.queue_declare(queue='Airplane', durable=True)
 
         message = json.dumps({
-            "type": "Садись",
+            "type": "Landing",
             "value": {
                 "stripid": f"{stripid}",
                 "aircraftid": f"{aircraftid}"
@@ -181,12 +204,37 @@ class Followme(threading.Thread):
                               body=message,
                               properties=pika.BasicProperties(
                                   content_type="json",
-                                  correlation_id=f"{self.uuid}",
+                                  correlation_id=f"{carid}",
                                   delivery_mode=2
                               ))
         print(" [x] Sent %r" % (json.loads(message)))
 
         connection.close()
+
+        def sendFly(self, aircraftid, carid):
+            connection = pika.BlockingConnection(pika.URLParameters(
+                'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+            channel = connection.channel()
+
+            channel.queue_declare(queue='Airplane', durable=True)
+
+            message = json.dumps({
+                "type": "Fly",
+                "value": {
+                    "aircraftid": f"{aircraftid}"
+                }
+            })
+            channel.basic_publish(exchange='',
+                                  routing_key='Airplane',
+                                  body=message,
+                                  properties=pika.BasicProperties(
+                                      content_type="json",
+                                      correlation_id=f"{carid}",
+                                      delivery_mode=2
+                                  ))
+            print(" [x] Sent %r" % (json.loads(message)))
+
+            connection.close()
 
     def sendInit(self):
         connection = pika.BlockingConnection(pika.URLParameters(
@@ -221,9 +269,13 @@ class Followme(threading.Thread):
     def setTakeoff(self, mess):
         self.queueTakeoff.put(mess)
 
+    def setAnswer(self, mess):
+        self.queueAnswer.put(mess)
+
 
 def callback(ch, method, properties, body):
     message = json.loads(body)
+    print("Пиршло сообщение: ", message)
     try:
         if message['service'] != 'follow_me':
             print("Не мое сообщение")
@@ -231,6 +283,12 @@ def callback(ch, method, properties, body):
             fm.setLoad(message)
         if message['request'] == 'service':
             fm.setTakeoff(message)
+        if message['request'] == 'movement':
+            answer = {'id': properties['correlation_id'], 'message':message}
+            fm.setAnswer(answer)
+        if message['request'] == 'landingcomp':
+            answer = {'id': message['fmid'], 'message': message}
+            fm.setAnswer(answer)
     except:
         print("Не мое сообщение")
     finally:
