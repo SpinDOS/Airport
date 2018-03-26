@@ -44,8 +44,10 @@ def getFlightId(aircraftId):
 
 
 def getFlueVolum(aircraftId):
-    # А тут у нас Сашин API
-    return 100
+    URL = "http://maps.googleapis.com/maps/api/geocode/json/info"
+    PARAMS = {'id':aircraftId}
+    res = requests.get(url=URL, params=PARAMS).json()
+    return res['fuel'][0]
 
 def getAirCraftIf(flightId):
     # А тут у нас Сашин API
@@ -79,7 +81,7 @@ def sendMovement(carId, fromId, toId, status):
 
     connection.close()
 
-def sendMaintain(carId, flightId):
+def sendMaintain(carId, airplane_id):
     connection = pika.BlockingConnection(pika.URLParameters(
         'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
     channel = connection.channel()
@@ -89,8 +91,7 @@ def sendMaintain(carId, flightId):
     message = json.dumps({
         "service":"fuel",
         "request":"maintain",
-        "flightid":f"{flightId}",
-        "status":"done"
+        "airplane_id":f"{airplane_id}"
     })
     channel.basic_publish(exchange='',
                           routing_key='gtc.gate',
@@ -175,21 +176,21 @@ class Refueler:
             "From": f"{self._currentLocation}",
             "To": f"{self._tempLocation}",
             "Transport": f"Fuel|{self.uuid}",
-            "Progress": f"{progress}",
+            "Duration": f"1",
         })
         channel.basic_publish(exchange='',
                               routing_key='visualizer',
                               body=message,
                               properties=pika.BasicProperties(
                                   content_type="json",
-                                  correlation_id=f"{carId}",
+                                  correlation_id=f"{self.uuid}",
                                   delivery_mode=2
                               ))
         print(" [x] Sent %r" % (json.loads(message)))
 
         connection.close()
 
-    def sendFlue(self, volume):
+    def sendFlue(self, volume, airplane_id):
         connection = pika.BlockingConnection(pika.URLParameters(
             'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
         channel = connection.channel()
@@ -197,10 +198,10 @@ class Refueler:
         channel.queue_declare(queue='Airplane', durable=True)
 
         message = json.dumps({
-            "type": "Заправься",
+            "type": "Refuel",
             "value": {
-                "volume": f"{volume}",
-                "aircraftid": f"{self.__aircraftid}"
+                "volume": float(volume),
+                "aircraftid": f"{airplane_id}"
             }
         })
         channel.basic_publish(exchange='',
@@ -225,40 +226,29 @@ class Refueler:
                 pass
 
             progress = 0
-            while not(progress > 1):
-                self.sendVisualize(progress)
-                progress += 0.1
-                time.sleep(5)
+
+            self.sendVisualize(1)
+
 
             sendMovement(self.uuid, self._currentLocation, self._tempLocation, "done")
             self._currentLocation = self._tempLocation
 
-    def doFluer(self, flightid, parkingid, aircraftid):
+    def doFluer(self, airplane_id, parkingid):
         self.__done = False
-        self._finishLocation = parkingid
-        self._aircraftId = aircraftid
-        volume = getFlueVolum(self._aircraftId)
-        time.sleep(5)
+        self._finishLocation = parkingid+"Fuel"
+        volume = getFlueVolum(airplane_id)
 
         self.walk()
 
-        self.sendFlue(volume=volume)
+        self.sendFlue(volume=volume, airplane_id=airplane_id)
 
         while not(self.__done):
             pass
 
-        sendMaintain(carId=self.uuid, flightid=flightid)
+        sendMaintain(carId=self.uuid, airplane_id=airplane_id)
 
         self._finishLocation = self._homeId
         self.walk()
-
-
-
-
-
-
-
-
 
 
 
@@ -281,6 +271,7 @@ class ThreadRefueler(threading.Thread):
 
     def callback(self, ch, method, properties, body):
         message = json.loads(body)
+        print("Пришло: ", self.getCarId(), message)
         try :
             if message['service'] != 'fuel':
                 print('Сообщение отправлено: %r', {message['service']})
@@ -289,7 +280,7 @@ class ThreadRefueler(threading.Thread):
 
             self.setFinishLocation(message['gate_id'])
 
-            self.refueler.doFluer(flightid=message['flight_id'], parkingid=message['gate_id'], aircraftid=message['aircraft_id'])
+            self.refueler.doFluer(airplane_id=message['airplane_id'], parkingid=message['parking_id'])
         except :
             print("Не найден параметр")
         finally:
