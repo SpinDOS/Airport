@@ -176,7 +176,7 @@ class Refueler:
             "From": f"{self._currentLocation}",
             "To": f"{self._tempLocation}",
             "Transport": f"Fuel|{self.uuid}",
-            "Duration": f"1",
+            "Duration": f"1000",
         })
         channel.basic_publish(exchange='',
                               routing_key='visualizer',
@@ -228,7 +228,7 @@ class Refueler:
             progress = 0
 
             self.sendVisualize(1)
-
+            time.sleep(1)
 
             sendMovement(self.uuid, self._currentLocation, self._tempLocation, "done")
             self._currentLocation = self._tempLocation
