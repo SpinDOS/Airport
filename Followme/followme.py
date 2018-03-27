@@ -37,11 +37,15 @@ except:
     from queue import Queue
 
 
-URL = ""
+URL = "http://10.99.250.144:8081"
 
 def sendMovement(carId, fromId, toId, status):
-    connection = pika.BlockingConnection(pika.URLParameters(
-        'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+    credentials = pika.PlainCredentials('user', 'password')
+    parameters = pika.ConnectionParameters('10.99.67.120',
+                                           5672,
+                                           '/',
+                                           credentials)
+    connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.queue_declare(queue='gtc.gate', durable=True)
@@ -68,8 +72,12 @@ def sendMovement(carId, fromId, toId, status):
 
 
 def sendAccept(carId, airplane_id, parking_id):
-    connection = pika.BlockingConnection(pika.URLParameters(
-        'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+    credentials = pika.PlainCredentials('user', 'password')
+    parameters = pika.ConnectionParameters('10.99.67.120',
+                                           5672,
+                                           '/',
+                                           credentials)
+    connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.queue_declare(queue='gtc.gate', durable=True)
@@ -94,8 +102,12 @@ def sendAccept(carId, airplane_id, parking_id):
     connection.close()
 
 def sendMaintain(carId, aircraftId):
-    connection = pika.BlockingConnection(pika.URLParameters(
-        'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+    credentials = pika.PlainCredentials('user', 'password')
+    parameters = pika.ConnectionParameters('10.99.67.120',
+                                           5672,
+                                           '/',
+                                           credentials)
+    connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.queue_declare(queue='gtc.gate', durable=True)
@@ -118,27 +130,31 @@ def sendMaintain(carId, aircraftId):
     connection.close()
 
 def sendVisualize(currentLocation, tempLocation, carid, airplane_id):
-    connection = pika.BlockingConnection(pika.URLParameters(
-        'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+    credentials = pika.PlainCredentials('user', 'password')
+    parameters = pika.ConnectionParameters('10.99.67.120',
+                                           5672,
+                                           '/',
+                                           credentials)
+    connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
 
     channel.queue_declare(queue='visualizer', durable=True)
-
+    duration = 1500
     if airplane_id == 0:
         message = json.dumps({
             "Type": "movement",
             "From": f"{currentLocation}",
             "To": f"{tempLocation}",
-            "Transport": f"Fuel|{carid}",
-            "Duration": f"1000",
+            "Transport": f"FollowMe|{carid}",
+            "Duration": duration,
         })
     else:
         message = json.dumps({
             "Type": "movement",
             "From": f"{currentLocation}",
             "To": f"{tempLocation}",
-            "Transport": f"Fuel|{carid}",
-            "Duration": f"1000",
+            "Transport": f"FollowMe|{carid}",
+            "Duration": duration,
             'Aircraft': f'{airplane_id}'
         })
     channel.basic_publish(exchange='',
@@ -162,16 +178,16 @@ class Followme(threading.Thread):
         f'{uuid.uuid4()}': True
     }
     parkingDict = {
-        'AirParking|1': True,
-        'AirParking|2': True,
-        'AirParking|3': True,
-        'AirParking|4': True
+        'AircraftParking1': True,
+        'AircraftParking2': True,
+        'AircraftParking3': True,
+        'AircraftParking4': True
         }
 
     stripDict = {
-        'Strip|1': True,
-        'Strip|2': True,
-        'Strip|3': True,
+        '1': True,
+        '2': True,
+        '3': True,
     }
 
     answerDict = {}
@@ -199,12 +215,14 @@ class Followme(threading.Thread):
 
     def run(self):
         while True:
+
             if not(self.queueTakeoff.empty()):
+                print("Получил на взлет")
                 with self.carLock:
                     with self.stripLock:
                         for car in self.carDict:
                             for strip in self.stripDict:
-                                if self.carDict[car] and self.stripDict[strip]:
+                                if not(self.queueTakeoff.empty()) and self.carDict[car] and self.stripDict[strip]:
                                     self.carDict[car] = False
                                     self.stripDict[strip] = False
                                     t = threading.Thread(target=self.takeoff, args=(self.queueTakeoff.get(),strip,car,))
@@ -212,20 +230,29 @@ class Followme(threading.Thread):
                                     self.queueTakeoff.task_done()
 
             if not(self.queueLoad.empty()):
+                print("Получил на посадку")
                 with self.carLock:
                     with self.stripLock:
                         with self.parkingLock:
                             for car in self.carDict:
+                                print(3)
                                 for strip in self.stripDict:
+                                    print(4)
                                     for parking in self.parkingDict:
-                                        if self.carDict[car] and self.stripDict[strip] and self.parkingDict[parking]:
+                                        print(5)
+                                        if not(self.queueLoad.empty()) and self.carDict[car] and self.stripDict[strip] and self.parkingDict[parking]:
                                             self.carDict[car] = False
                                             self.stripDict[strip] = False
                                             self.parkingDict[parking] = False
                                             t = threading.Thread(target=self.loadboard, args=(self.queueLoad.get(),parking,strip,car,))
+                                            print(2)
                                             t.start()
+                                            print(1)
                                             self.queueLoad.task_done()
+                                            print(0)
+
             if not(self.queueAnswer.empty()):
+                print("Получил ответ")
                 with self.answerLock:
                     answer = self.queueAnswer.get()
                     mess = answer['message']
@@ -253,9 +280,9 @@ class Followme(threading.Thread):
             print("Неверный формат")
             exit(1)
 
-        currentPos = "FollowMeGarage|1"
+        currentPos = "FollowMeGarage1"
         nextPos = currentPos
-        finishPos = parking_id + "FollowMeBack"
+        finishPos = parking_id
 
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=0)
         self.startToStrip(carid=car, airplane_id=airplane_id)
@@ -275,7 +302,18 @@ class Followme(threading.Thread):
 
         currentPos = finishPos
         nextPos = currentPos
-        finishPos = "FollowMeGarage|1"
+        finishPos = "FollowMeGarage1"
+
+        self.sendFly(car, airplane_id)
+
+        landing = False
+        while not (landing):
+            with self.answerLock:
+                for answer in self.answerDict:
+                    if answer == car:
+                        for ans in self.answerDict[answer]:
+                            if ans['request'] == 'flicomp':
+                                landing = True
 
         with self.stripLock:
             self.stripDict[strip] = True
@@ -294,35 +332,41 @@ class Followme(threading.Thread):
         except:
             print("Неверный формат")
             exit(1)
+        print(car, " Сожаю самолет")
         self.sendStrip(airplane_id, strip, car)
-        currentPos = "FollowMeGarage|1"
+        currentPos = "FollowMeGarage"
         nextPos = currentPos
-        finishPos = strip+"FollowMe"
-
+        finishPos = "Strip"+strip+"FollowMe"
+        print(car, " Еду на ", strip)
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=0)
 
         landing = False
         while not(landing):
             with self.answerLock:
                 for answer in self.answerDict:
-                    if answer['request'] == 'landingcomp':
-                        landing = True
+                    if answer == car:
+                        for ans in self.answerDict[answer]:
+                            if ans['request'] == 'landingcomp':
+                                landing = True
 
         self.startToParking(car, airplane_id)
+        print(car, " Приципил самолет ", airplane_id)
         currentPos = finishPos
         nextPos = currentPos
         finishPos = parking + "FollowMe"
 
         with self.stripLock:
             self.stripDict[strip] = True
+        print(car, " Еду на ", parking)
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=airplane_id)
         self.EndToParking(parkingid=parking, airplane_id=airplane_id)
-
+        print(car, " Отправляю accept")
         sendAccept(carId=car, airplane_id=airplane_id, parking_id=parking)
 
         currentPos = finishPos
         nextPos = currentPos
-        finishPos = "FollowMeGarage|1"
+        finishPos = "FollowMeGarage"
+        print(car, " Еду на home")
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=0)
         with self.carLock:
             self.carDict[car] = True
@@ -335,11 +379,14 @@ class Followme(threading.Thread):
             while nextPos == currentPos:
                 with self.answerLock:
                     for answer in self.answerDict:
-                        if answer['request'] == 'movement':
-                            nextPos = answer['to']
+                        if answer == carid:
+                            for ans in self.answerDict[answer]:
+                                if ans['request'] == 'movement':
+                                    nextPos = ans['to']
             sendVisualize(currentLocation=currentPos, tempLocation=nextPos, carid=carid, airplane_id=airplane_id)
-            sendMovement(carid, currentPos, finishPos, "done")
-            nextPos = currentPos
+            time.sleep(1.5)
+            sendMovement(carid, currentPos, nextPos, "done")
+            currentPos = nextPos
 
     def startToParking(self, carid,airplane_id):
         data = {'carId': carid}
@@ -384,8 +431,12 @@ class Followme(threading.Thread):
             r = requests.post(url=post_url, data=data)
 
     def sendStrip(self, aircraftid, stripid, carid):
-        connection = pika.BlockingConnection(pika.URLParameters(
-            'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+        credentials = pika.PlainCredentials('user', 'password')
+        parameters = pika.ConnectionParameters('10.99.67.120',
+                                               5672,
+                                               '/',
+                                               credentials)
+        connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
 
         channel.queue_declare(queue='Airplane', durable=True)
@@ -393,7 +444,36 @@ class Followme(threading.Thread):
         message = json.dumps({
             "type": "Landing",
             "value": {
-                "stripid": f"{stripid}",
+                "stripId": f"{stripid}",
+                "aircraftId": f"{aircraftid}"
+            }
+        })
+        channel.basic_publish(exchange='',
+                              routing_key='Airplane',
+                              body=message,
+                              properties=pika.BasicProperties(
+                                  content_type="json",
+                                  correlation_id=f"{carid}",
+                                  delivery_mode=2
+                              ))
+        print(" [x] Sent %r" % (json.loads(message)))
+
+        connection.close()
+
+    def sendFly(self, aircraftid, carid):
+        credentials = pika.PlainCredentials('user', 'password')
+        parameters = pika.ConnectionParameters('10.99.67.120',
+                                               5672,
+                                               '/',
+                                               credentials)
+        connection = pika.BlockingConnection(parameters)
+        channel = connection.channel()
+
+        channel.queue_declare(queue='Airplane', durable=True)
+
+        message = json.dumps({
+            "type": "Fly",
+            "value": {
                 "aircraftid": f"{aircraftid}"
             }
         })
@@ -409,34 +489,14 @@ class Followme(threading.Thread):
 
         connection.close()
 
-        def sendFly(self, aircraftid, carid):
-            connection = pika.BlockingConnection(pika.URLParameters(
-                'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
-            channel = connection.channel()
-
-            channel.queue_declare(queue='Airplane', durable=True)
-
-            message = json.dumps({
-                "type": "Fly",
-                "value": {
-                    "aircraftid": f"{aircraftid}"
-                }
-            })
-            channel.basic_publish(exchange='',
-                                  routing_key='Airplane',
-                                  body=message,
-                                  properties=pika.BasicProperties(
-                                      content_type="json",
-                                      correlation_id=f"{carid}",
-                                      delivery_mode=2
-                                  ))
-            print(" [x] Sent %r" % (json.loads(message)))
-
-            connection.close()
-
     def sendInit(self):
-        connection = pika.BlockingConnection(pika.URLParameters(
-            'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi'))
+        credentials = pika.PlainCredentials('user', 'password')
+        parameters = pika.ConnectionParameters('10.99.67.120',
+                                               5672,
+                                               '/',
+                                               credentials,
+                                               blocked_connection_timeout=5)
+        connection = pika.BlockingConnection(parameters)
         channel = connection.channel()
 
         channel.queue_declare(queue='visualizer', durable=True)
@@ -448,7 +508,7 @@ class Followme(threading.Thread):
         message = json.dumps({
             "Type": "init",
             "TransportType": f"FollowMe",
-            "Ids": f"{idCar}",
+            "Ids": idCar,
         })
         channel.basic_publish(exchange='',
                               routing_key='visualizer',
@@ -482,10 +542,13 @@ def callback(ch, method, properties, body):
         if message['request'] == 'service':
             fm.setTakeoff(message)
         if message['request'] == 'movement':
-            answer = {'id': properties['correlation_id'], 'message':message}
+            answer = {'id': properties.correlation_id, 'message':message}
             fm.setAnswer(answer)
         if message['request'] == 'landingcomp':
-            answer = {'id': message['fmid'], 'message': message}
+            answer = {'id': properties.correlation_id, 'message': message}
+            fm.setAnswer(answer)
+        if message['request'] == 'flicomp':
+            answer = {'id': properties.correlation_id, 'message': message}
             fm.setAnswer(answer)
     except:
         print("Не мое сообщение")
@@ -499,12 +562,15 @@ if __name__ == '__main__':
     fm = Followme()
     fm.start()
 
-    param = pika.URLParameters(
-        'amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK@duckbill.rmq.cloudamqp.com/aazhpoyi')
-    connection = pika.BlockingConnection(param)
+    credentials = pika.PlainCredentials('user', 'password')
+    parameters = pika.ConnectionParameters('10.99.67.120',
+                                           5672,
+                                           '/',
+                                           credentials,
+                                           blocked_connection_timeout=1000000)
+    connection = pika.BlockingConnection(parameters)
     channel = connection.channel()
     channel.queue_declare(queue='FMMQ', durable=True)
     channel.basic_qos(prefetch_count=1)
     channel.basic_consume(callback, queue='FMMQ')
     channel.start_consuming()
-
