@@ -38,6 +38,7 @@ async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessag
   let duration: number = volume * refuelSpeed;
   visualizeFuelling(fuelReq, duration, mqMessage);
   await delay(duration);
+  airplane.fuel += volume;
 }
 
 function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): void {
