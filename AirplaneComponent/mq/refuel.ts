@@ -23,12 +23,12 @@ export async function refuel(mqMessage: IMQMessage): Promise<void> {
   let airplane: IAirplane = airplanePool.get(fuelReq.aircraftId);
 
   updateStatusStart(airplane, fuelReq);
-  await refuelInternal(fuelReq, airplane);
+  await refuelInternal(fuelReq, airplane, mqMessage);
   notifyAboutEnd(fuelReq);
   updateStatusEnd(airplane);
 }
 
-async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane): Promise<void> {
+async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
   let volume: number = Math.min(fuelReq.volume, airplane.model.maxFuel - airplane.fuel);
 
   if (volume <= 0) {
@@ -36,7 +36,7 @@ async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane): Promise
   }
 
   let duration: number = volume * refuelSpeed;
-  visualizeFuelling(fuelReq, duration);
+  visualizeFuelling(fuelReq, duration, mqMessage);
   await delay(duration);
 }
 
@@ -55,7 +55,7 @@ function updateStatusEnd(airplane: IAirplane): void {
   logger.log(formatter.airplane(airplane) + ` has been refueled up to ${airplane.fuel}/${airplane.model.maxFuel}`);
 }
 
-function visualizeFuelling(fuelReq: IRefuelReq, duration: number): void {
+function visualizeFuelling(fuelReq: IRefuelReq, duration: number, mqMessage: IMQMessage): void {
   let body: any = {
     Type: "animation",
     AnimationType: "fuelling",
@@ -63,7 +63,7 @@ function visualizeFuelling(fuelReq: IRefuelReq, duration: number): void {
     Duration: duration,
   };
 
-  mq.send(body, mq.visualizerMQ);
+  mq.send(body, mq.visualizerMQ, mqMessage.properties.correlationId);
 }
 
 function notifyAboutEnd(fuelReq: IRefuelReq): void {

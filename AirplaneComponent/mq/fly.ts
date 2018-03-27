@@ -28,7 +28,7 @@ export async function fly(mqMessage: IMQMessage): Promise<void> {
   visualizeFly(airplane);
   await delay(duration);
 
-  await end(airplane);
+  await end(airplane, mqMessage);
 }
 
 function updateStatus(airplane: IAirplane): void {
@@ -48,15 +48,15 @@ function visualizeFly(airplane: IAirplane): void {
   mq.send(message, mq.visualizerMQ);
 }
 
-async function end(airplane: IAirplane): Promise<void> {
-  notifyFollowMe(airplane);
+async function end(airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
+  notifyFollowMe(airplane, mqMessage);
   await notifyPassengers(airplane);
 
   airplanePool.remove(airplane.id);
   logger.log(formatter.airplane(airplane) + " has flown away");
 }
 
-function notifyFollowMe(airplane: IAirplane): void {
+function notifyFollowMe(airplane: IAirplane, mqMessage: IMQMessage): void {
   let messageToFollowme: any = {
     service: "follow_me",
     request: "flycomp",
@@ -64,7 +64,7 @@ function notifyFollowMe(airplane: IAirplane): void {
     stripId: airplane.status.additionalInfo.stripId,
   };
 
-  mq.send(messageToFollowme, mq.followMeMQ);
+  mq.send(messageToFollowme, mq.followMeMQ, mqMessage.properties.correlationId);
 }
 
 async function notifyPassengers(airplane: IAirplane): Promise<void> {

@@ -25,7 +25,7 @@ export async function landing(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusStart(airplane, landingReq);
   await land(landingReq);
-  notifyAboutEnd(landingReq);
+  notifyAboutEnd(landingReq, mqMessage);
   updateStatusEnd(airplane);
 }
 
@@ -60,12 +60,12 @@ function visualizeLanding(landingReq: ILandingReq, duration: number): void {
   mq.send(body, mq.visualizerMQ);
 }
 
-function notifyAboutEnd(landingReq: ILandingReq): void {
+function notifyAboutEnd(landingReq: ILandingReq, mqMessage: IMQMessage): void {
   let body: any = {
     service: "follow_me",
     request: "landingcomp",
-    fmId: landingReq.aircraftId.toString()
+    airplaneId: landingReq.aircraftId.toString()
   };
 
-  mq.send(body, mq.followMeMQ);
+  mq.send(body, mq.followMeMQ, mqMessage.properties.correlationId);
 }
