@@ -144,7 +144,10 @@ export class LazyFlight implements IFlight {
     let body: string;
     try {
       let request: any = require("sync-request");
-      let response: any = request("GET", passengersUrl + "/passengers");
+      let qs: object = {
+        flight: this.id.toString(),
+      };
+      let response: any = request("GET", passengersUrl + "/passengers", { qs: qs });
       let encoding: string = (response.headers && response.headers["content-encoding"] &&
                               response.headers["content-encoding"].toString()) || "utf8";
       body = response.getBody(encoding);
