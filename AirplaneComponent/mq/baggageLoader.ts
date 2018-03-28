@@ -63,7 +63,8 @@ function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): v
 
 function notifyAboutLoadEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
-    throw new ValidationError("Missing 'replyTo' in load baggage request");
+    logger.error("Missing 'replyTo' in load baggage request");
+    return;
   }
 
   let body: any = {

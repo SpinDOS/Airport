@@ -69,7 +69,6 @@ function notifyFollowMe(airplane: IAirplane, mqMessage: IMQMessage): void {
 }
 
 async function notifyPassengers(airplane: IAirplane): Promise<void> {
-  await passengersAPI.post("flight_away/" + airplane.id.toString())
-    .catch(e => logger.error(
+  await passengersAPI.post("flight_away/" + airplane.id.toString()).catch(e => logger.error(
       `Error notifying passengers about airplane fly: ${formatter.airplane(airplane)}. ` + e.toString()));
 }

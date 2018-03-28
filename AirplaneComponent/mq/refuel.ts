@@ -22,33 +22,32 @@ export async function refuel(mqMessage: IMQMessage): Promise<void> {
   let fuelReq: IRefuelReq = validateRefuelReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(fuelReq.aircraftId);
 
-  updateStatusStart(airplane, fuelReq);
-  let volume: number = await refuelInternal(fuelReq, airplane, mqMessage);
+  let volume: number = updateStatusStart(airplane, fuelReq);
+  await refuelInternal(fuelReq, airplane, mqMessage, volume);
   notifyAboutEnd(fuelReq, volume);
   updateStatusEnd(airplane);
 }
 
-async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<number> {
+async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage, volume: number): Promise<void> {
+  let duration: number = volume * refuelSpeed;
+  visualizeFuelling(fuelReq, duration, mqMessage);
+  await delay(duration);
+  airplane.fuel += volume;
+}
+
+function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): number {
+  assert.AreEqual(AirplaneStatus.OnParkingEmpty, airplane.status.type);
   let volume: number = Math.min(fuelReq.volume, airplane.model.maxFuel - airplane.fuel);
 
   if (volume <= 0) {
     throw new LogicalError(`Can not refuel ${formatter.airplane(airplane)} for ${volume} units of fuel`);
   }
 
-  let duration: number = volume * refuelSpeed;
-  visualizeFuelling(fuelReq, duration, mqMessage);
-  await delay(duration);
-  airplane.fuel += volume;
-  return volume;
-}
-
-function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): void {
-  assert.AreEqual(AirplaneStatus.OnParkingEmpty, airplane.status.type);
-
   airplane.status.type = AirplaneStatus.Fuelling;
   airplane.status.additionalInfo.fuelerCarId = fuelReq.carId;
 
   logger.log(formatter.airplane(airplane) + " is being refueled by " + fuelReq.carId);
+  return volume;
 }
 
 function updateStatusEnd(airplane: IAirplane): void {

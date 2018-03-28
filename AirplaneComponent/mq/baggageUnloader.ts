@@ -62,7 +62,8 @@ function updateStatusAfterUnload(airplane: IAirplane, unloadReq: IUnloadBaggageR
 
 function notifyAboutUnload(baggage: IBaggage[], unloadReq: IUnloadBaggageReq, mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
-    throw new ValidationError("Missing 'replyTo' in unload baggage request");
+    logger.error("Missing 'replyTo' in unload baggage request");
+    return;
   }
 
   let body: any = {

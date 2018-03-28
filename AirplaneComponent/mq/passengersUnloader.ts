@@ -75,7 +75,8 @@ async function changePassengersStatus(unloadReq: IUnloadPassengersReq, passenger
 
 function notifyAboutUnloadEnd(unloadReq: IUnloadPassengersReq, passengers: IPassenger[], mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
-    throw new ValidationError("Missing 'replyTo' in unload passengers request");
+    logger.error("Missing 'replyTo' in unload passengers request");
+    return;
   }
 
   let body: any = {

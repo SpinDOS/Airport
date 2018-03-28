@@ -75,12 +75,12 @@ async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, airplane: IAirpla
     passengers: loadReq.passengers.map(p => p.toString())
   };
 
-  await passengersAPI.post("change_status", pasBody)
-    .catch(e => logger.error(
+  await passengersAPI.post("change_status", pasBody).catch(e => logger.error(
     `Error notifying passengers about loading airplane: ${formatter.flight(airplane.departureFlight)}. ` + e.toString()));
 
   if (!mqMessage.properties.replyTo) {
-    throw new ValidationError("Missing 'replyTo' in load passengers request");
+    logger.error("Missing 'replyTo' in load passengers request");
+    return;
   }
 
   let busBody: any = {
