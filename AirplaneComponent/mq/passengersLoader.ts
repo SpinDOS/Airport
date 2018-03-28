@@ -30,17 +30,13 @@ export async function loadPassengers(mqMessage: IMQMessage): Promise<void> {
   let airplane: IAirplane = airplanePool.get(loadReq.airplaneId);
   let passengers: IPassenger[] = await getPassengersFullInfo(loadReq, airplane);
 
-  updateStatusBeforeLoad(airplane, loadReq);
+  updateStatusBeforeLoad(loadReq, airplane, passengers);
   await load(loadReq, airplane, passengers);
-  await notifyAboutLoadEnd(loadReq, mqMessage);
-  updateStatusAfterLoad(airplane, loadReq, passengers);
+  await notifyAboutLoadEnd(loadReq, airplane, mqMessage);
+  updateStatusAfterLoad(loadReq, airplane, passengers);
 }
 
 async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): Promise<void> {
-  if (passengers.length + airplane.passengers.length > airplane.departureFlight.passengersCount) {
-    throw new LogicalError("Too many passengers to load");
-  }
-
   let duration: number = passengers.length * loadSpeed;
   visualizeLoad(loadReq, duration);
 
@@ -54,20 +50,24 @@ async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers
   }
 }
 
-function updateStatusBeforeLoad(airplane: IAirplane, loadReq: ILoadPassengersReq): void {
-  helper.startLoading(airplane, "buses", loadReq.busId);
+function updateStatusBeforeLoad(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
+  if (passengers.length + airplane.passengers.length > airplane.departureFlight.passengersCount) {
+    throw new LogicalError("Too many passengers to load");
+  }
+
+  helper.startLoading(airplane, helper.LoadTarget.Passengers, loadReq.busId);
   logger.log(formatter.airplane(airplane) + " is loading passengers from " + loadReq.busId);
 }
 
-function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadPassengersReq, passengers: IPassenger[]): void {
-  helper.endLoading(airplane, "buses", loadReq.busId);
+function updateStatusAfterLoad(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
+  helper.endLoading(airplane, helper.LoadTarget.Passengers, loadReq.busId);
 
   logger.log(`Loaded ${passengers.length} passengers to ${formatter.airplane(airplane)} from ${loadReq.busId}. ` +
               `${airplane.passengers.length}/${airplane.departureFlight.passengersCount} total`);
   helper.checkLoadEnd(airplane);
 }
 
-async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, mqMessage: IMQMessage): Promise<void> {
+async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
   let pasBody: object = {
     newStatus: "InAirplane",
     busId: loadReq.busId,
@@ -75,7 +75,9 @@ async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, mqMessage: IMQMes
     passengers: loadReq.passengers.map(p => p.toString())
   };
 
-  await passengersAPI.post("changeStatus", pasBody);
+  await passengersAPI.post("change_status", pasBody)
+    .catch(e => logger.error(
+    `Error notifying passengers about loading airplane: ${formatter.flight(airplane.departureFlight)}. ` + e.toString()));
 
   if (!mqMessage.properties.replyTo) {
     throw new ValidationError("Missing 'replyTo' in load passengers request");

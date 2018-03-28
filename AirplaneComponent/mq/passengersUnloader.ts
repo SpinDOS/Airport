@@ -8,6 +8,7 @@ import * as logger from "../utils/logger";
 import * as formatter from "../utils/formatter";
 
 import { ValidationError } from "../errors/validationError";
+import { LogicalError } from "../errors/logicalError";
 
 import { IPassenger } from "../model/passenger";
 import { IAirplane } from "../model/airplane";
@@ -26,10 +27,10 @@ export async function unloadPassengers(mqMessage: IMQMessage): Promise<void> {
   let unloadReq: IUnloadPassengersReq = validateUnloadPasReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(unloadReq.airplaneId);
 
-  updateStatusBeforeUnload(airplane, unloadReq);
+  updateStatusBeforeUnload(unloadReq, airplane);
   let passengers: IPassenger[] = await unload(unloadReq, airplane);
-  notifyAboutUnloadEnd(passengers, unloadReq, mqMessage);
-  updateStatusAfterUnload(airplane, unloadReq, passengers);
+  notifyAboutUnloadEnd(unloadReq, passengers, mqMessage);
+  updateStatusAfterUnload(unloadReq, airplane, passengers);
 }
 
 async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Promise<IPassenger[]> {
@@ -44,13 +45,17 @@ async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Pro
   return passengers;
 }
 
-function updateStatusBeforeUnload(airplane: IAirplane, unloadReq: IUnloadPassengersReq): void {
-  helper.startUnloading(airplane, "buses", unloadReq.busId);
+function updateStatusBeforeUnload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): void {
+  if (airplane.passengers.length === 0) {
+    throw new LogicalError("Can not unload passengers from " + formatter.airplane(airplane) + " because it is empty");
+  }
+
+  helper.startUnloading(airplane, helper.LoadTarget.Passengers, unloadReq.busId);
   logger.log(formatter.airplane(airplane) + " is unloading passengers to " + unloadReq.busId);
 }
 
-function updateStatusAfterUnload(airplane: IAirplane, unloadReq: IUnloadPassengersReq, passengers: IPassenger[]): void {
-  helper.endUnloading(airplane, "buses", unloadReq.busId);
+function updateStatusAfterUnload(unloadReq: IUnloadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
+  helper.endUnloading(airplane, helper.LoadTarget.Passengers, unloadReq.busId);
 
   logger.log(`Unloaded ${passengers.length} passengers from ${formatter.airplane(airplane)} to ${unloadReq.busId}. ` +
               `${airplane.passengers.length} left`);
@@ -59,15 +64,16 @@ function updateStatusAfterUnload(airplane: IAirplane, unloadReq: IUnloadPassenge
 
 async function changePassengersStatus(unloadReq: IUnloadPassengersReq, passengers: IPassenger[]): Promise<void> {
   let body: object = {
-    newStatus: "UnloadingFromAirplaneToBus",
+    newStatus: "Landing",
     busId: unloadReq.busId,
     passengers: passengers.map(p => p.id.toString())
   };
 
-  await passengersAPI.post("changeStatus", body);
+  await passengersAPI.post("change_status", body).catch(e => logger.error(
+    `Error notifying passengers about unload airplane: ${formatter.guid(unloadReq.airplaneId)}. ` + e.toString()));
 }
 
-function notifyAboutUnloadEnd(passengers: IPassenger[], unloadReq: IUnloadPassengersReq, mqMessage: IMQMessage): void {
+function notifyAboutUnloadEnd(unloadReq: IUnloadPassengersReq, passengers: IPassenger[], mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
     throw new ValidationError("Missing 'replyTo' in unload passengers request");
   }
