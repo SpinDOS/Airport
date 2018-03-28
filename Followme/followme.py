@@ -38,6 +38,11 @@ except:
 
 
 URL = "http://10.99.250.144:8081"
+credentials = pika.PlainCredentials('user', 'password')
+parameters = pika.ConnectionParameters('10.99.67.120',
+                                           5672,
+                                           '/',
+                                           credentials)
 
 def sendMovement(carId, fromId, toId, status):
     credentials = pika.PlainCredentials('user', 'password')
@@ -396,6 +401,7 @@ class Followme(threading.Thread):
             if r.status_code == 404:
                 print("Самолетик пропал: ", airplane_id)
                 exit(1)
+            time.sleep(10)
             r = requests.post(url=post_url, data=data)
 
 
@@ -407,6 +413,7 @@ class Followme(threading.Thread):
             if r.status_code == 404:
                 print("Самолетик пропал: ", airplane_id)
                 exit(1)
+            time.sleep(10)
             r = requests.post(url=post_url, data=data)
 
 
@@ -418,6 +425,7 @@ class Followme(threading.Thread):
             if r.status_code == 404:
                 print("Самолетик пропал: ", airplane_id)
                 exit(1)
+            time.sleep(10)
             r = requests.post(url=post_url, data=data)
 
     def endToStrip(self, stripid,airplane_id):
@@ -428,6 +436,7 @@ class Followme(threading.Thread):
             if r.status_code == 404:
                 print("Самолетик пропал: ", airplane_id)
                 exit(1)
+            time.sleep(10)
             r = requests.post(url=post_url, data=data)
 
     def sendStrip(self, aircraftid, stripid, carid):
