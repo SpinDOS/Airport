@@ -44,12 +44,16 @@ async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promis
 }
 
 function updateStatusBeforeUnload(airplane: IAirplane, unloadReq: IUnloadBaggageReq): void {
-  helper.startUnloading(airplane, "baggageCars", unloadReq.carId);
+  if (airplane.baggages.length === 0) {
+    throw new LogicalError("Can not unload baggage from " + formatter.airplane(airplane) + " because it is empty");
+  }
+
+  helper.startUnloading(airplane, helper.LoadTarget.Baggage, unloadReq.carId);
   logger.log(formatter.airplane(airplane) + " is unloading baggage to " + unloadReq.carId);
 }
 
 function updateStatusAfterUnload(airplane: IAirplane, unloadReq: IUnloadBaggageReq, baggages: IBaggage[]): void {
-  helper.endUnloading(airplane, "baggageCars", unloadReq.carId);
+  helper.endUnloading(airplane, helper.LoadTarget.Baggage, unloadReq.carId);
 
   logger.log(`Unloaded ${baggages.length} baggage from ${formatter.airplane(airplane)} to ${unloadReq.carId}. ` +
               `${airplane.baggages.length} left`);
