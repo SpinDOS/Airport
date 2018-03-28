@@ -18,11 +18,13 @@ import { ValidationError } from "../errors/validationError";
 import { LogicalError } from "../errors/logicalError";
 import { NotFoundError } from "../errors/notFoundError";
 import { ConnectionError } from "../errors/connectionError";
+import { validateGuid } from "../model/validation/helper";
 
 import * as followMe from "./followMe";
 import * as info from "./info";
 
-let app: Koa = new Koa();
+
+const app: Koa = new Koa();
 
 export function start(): void {
   let router: Router = new Router();
@@ -42,12 +44,13 @@ async function handleErrors(ctx: Koa.Context, next: () => Promise<any>): Promise
       throw err;
     }
 
-    ctx.response.status = getStatusCode(err);
-
     let req: any = ctx.request;
-    let sourceText: string = (req && req.body && req.body.toString()) || ctx.request.url;
+    let sourceText: string = req && ((req.body && req.body.toString()) || req.url);
 
-    logger.error(formatter.error(err, sourceText));
+    let error: string = formatter.error(err, sourceText);
+    ctx.response.status = getStatusCode(err);
+    ctx.response.body = error;
+    logger.error(error);
   });
 }
 
@@ -63,11 +66,8 @@ function setUpRouter(router: Router): void {
 }
 
 function validateAirplaneId(id: string, ctx: IRouterContext, next: () => Promise<any>): Promise<any> {
-  if (!id || !Guid.isGuid(id)) {
-    throw new ValidationError("Http request: Invalid airplane id: " + id);
-  }
-
-  ctx.airplane = airplanePool.get(Guid.parse(id));
+  let airplaneId: Guid = validateGuid(id, "Http request: Invalid airplane id");
+  ctx.airplane = airplanePool.get(airplaneId);
   return next();
 }
 
@@ -89,9 +89,5 @@ function configureBodyParser(): Middleware<Koa.Context> {
     throw new ValidationError("Http request body parse error: " + message);
   }
 
-  let opts: any = {
-    onerror: onError
-  };
-
-  return bodyParser(opts);
+  return bodyParser({ onerror: onError });
 }
