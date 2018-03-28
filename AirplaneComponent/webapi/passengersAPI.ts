@@ -23,10 +23,11 @@ export async function get(url: string, qs?: object): Promise<string> {
     .catch(e => onApiError("Passenger API", e));
 }
 
-export async function post(url: string, body: object): Promise<string> {
+export async function post(url: string, body?: object): Promise<string> {
+  let bodyStr: string | undefined = body? JSON.stringify(body) : undefined;
   return rp.post(passengersUrl + url, {
     headers: headers,
-    body: JSON.stringify(body)
+    body: bodyStr,
   })
   .catch(e => onApiError("Passenger API", e));
 }
