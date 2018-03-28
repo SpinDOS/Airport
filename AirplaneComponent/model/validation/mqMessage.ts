@@ -1,5 +1,4 @@
-import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString } from "../../utils/utils";
+import * as helper from "./helper";
 
 export interface IMQMessage {
   type: string;
@@ -12,17 +11,10 @@ export interface IMQMessage {
 }
 
 export function validateMQMessage(mqMessage: any): IMQMessage {
-  if (!mqMessage) {
-    throw new ValidationError("MQ message is empty");
-  }
-
-  let type: any = mqMessage.type;
-  if (!isNotEmptyString(type)) {
-    throw new ValidationError("Invalid type of MQ message: " + type);
-  }
+  mqMessage = helper.validateNotEmpty(mqMessage, "MQ message is empty");
 
   return {
-    type: type,
+    type: helper.validateNotEmptyString(mqMessage.type, "Empty type of MQ message"),
     value: mqMessage.value,
     properties: { }
   };

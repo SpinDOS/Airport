@@ -1,6 +1,7 @@
 import { Guid } from "guid-typescript";
 import { ValidationError } from "../../errors/validationError";
-import { isPositiveNumber, isNotEmptyString } from "../../utils/utils";
+import { isPositiveNumber } from "../../utils/utils";
+import * as helper from "./helper";
 
 export interface IRefuelReq {
   aircraftId: Guid;
@@ -9,28 +10,19 @@ export interface IRefuelReq {
 }
 
 export function validateRefuelReq(refuelReq: any): IRefuelReq {
-  if (!refuelReq) {
-    throw new ValidationError("Expected refuelling parameters");
-  }
+  refuelReq = helper.validateNotEmpty(refuelReq, "Expected refuelling parameters");
 
-  let aircraftId: any = refuelReq.aircraftId;
-  if (!aircraftId || !Guid.isGuid(aircraftId)) {
-    throw new ValidationError("Invalid airplane id for refuelling: " + aircraftId);
-  }
+  return {
+    aircraftId: helper.validateGuid(refuelReq.aircraftId, "Invalid airplane id for refuelling"),
+    carId:      helper.validateNotEmptyString(refuelReq.carId, "Invalid car id for refuelling"),
+    volume:     validateVolume(refuelReq.volume),
+  };
+}
 
-  let carId: any = refuelReq.carId;
-  if (!isNotEmptyString(carId)) {
-    throw new ValidationError("Invalid car id for refuelling: " + carId);
-  }
-
-  let volume: any = refuelReq.volume;
+function validateVolume(volume: any): number {
   if (!isPositiveNumber(volume)) {
     throw new ValidationError("Invalid refuelling volume: " + volume);
   }
 
-  return {
-    aircraftId: Guid.parse(aircraftId),
-    carId: carId,
-    volume: volume,
-  };
+  return volume;
 }

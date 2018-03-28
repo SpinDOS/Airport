@@ -1,6 +1,5 @@
 import { Guid } from "guid-typescript";
-import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString, isPositiveInt } from "../../utils/utils";
+import * as helper from "./helper";
 
 export interface IUnloadBaggageReq {
   airplaneId: Guid;
@@ -9,29 +8,12 @@ export interface IUnloadBaggageReq {
 }
 
 export function validateUnloadBaggageReq(unloadBagReq: any): IUnloadBaggageReq {
-  if (!unloadBagReq) {
-    throw new ValidationError("Missing baggage unload parameters");
-  }
-
-  let airplaneId: any = unloadBagReq.airplaneId;
-  if (!airplaneId || !Guid.isGuid(airplaneId)) {
-    throw new ValidationError("Invalid airplane id to unload baggage: " + airplaneId);
-  }
-
-  let count: any = unloadBagReq.count;
-  if (!isPositiveInt(count)) {
-    throw new ValidationError("Invalid baggage unload request's baggage count: " + unloadBagReq.count);
-  }
-
-  let carId: any = unloadBagReq.carId;
-  if (!isNotEmptyString(carId)) {
-    throw new ValidationError("Invalid car id of unloading baggage car: " + carId);
-  }
+  unloadBagReq = helper.validateNotEmpty(unloadBagReq, "Missing baggage unload parameters");
 
   return {
-    airplaneId: Guid.parse(airplaneId),
-    count: count,
-    carId: carId,
+    airplaneId: helper.validateGuid(unloadBagReq.airplaneId, "Invalid airplane id to unload baggage"),
+    carId:      helper.validateNotEmptyString(unloadBagReq.carId, "Invalid car id of unloading baggage car"),
+    count:      helper.validatePositiveInt(unloadBagReq.count, "Invalid baggage unload request's baggage count"),
    };
 }
 
@@ -44,40 +26,16 @@ export interface ILoadBaggageReq {
 }
 
 export function validateBaggageId(baggageId: any): Guid {
-  if (!baggageId || !Guid.isGuid(baggageId)) {
-    throw new ValidationError("Invalid baggage id: " + baggageId);
-  } else {
-    return Guid.parse(baggageId);
-  }
+  return helper.validateGuid(baggageId, "Invalid baggage id");
 }
 
 export function validateLoadBaggageReq(baggageLoadReq: any): ILoadBaggageReq {
-  if (!baggageLoadReq) {
-    throw new ValidationError("Baggage load parameters not found");
-  }
-
-  let airplaneId: any = baggageLoadReq.airplaneId;
-  if (!airplaneId || !Guid.isGuid(airplaneId)) {
-    throw new ValidationError("Invalid airplane id to load baggage: " + airplaneId);
-  }
-
-  let carId: any = baggageLoadReq.carId;
-  if (!isNotEmptyString(carId)) {
-    throw new ValidationError("Invalid baggage loading car id: " + carId);
-  }
-
-  let baggages: Array<any> = baggageLoadReq.baggages;
-  if (!(baggageLoadReq.baggages instanceof Array)) {
-    throw new ValidationError("Baggage list to load not found");
-  }
-
-  if (baggages.length === 0) {
-    throw new ValidationError("Baggage list to load is empty");
-  }
+  baggageLoadReq = helper.validateNotEmpty(baggageLoadReq, "Baggage load parameters not found");
 
   return {
-    airplaneId: Guid.parse(airplaneId),
-    carId: carId,
-    baggages: baggages.map(validateBaggageId),
+    airplaneId: helper.validateGuid(baggageLoadReq.airplaneId, "Invalid airplane id to load baggage"),
+    carId:      helper.validateNotEmptyString(baggageLoadReq.carId, "Invalid baggage loading car id"),
+    baggages:   helper.validateNotEmptyArray(baggageLoadReq.baggages, validateBaggageId,
+                      "Baggage list to load not found", "Baggage list to load is empty"),
   };
 }
