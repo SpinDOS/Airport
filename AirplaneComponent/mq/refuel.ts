@@ -1,4 +1,6 @@
-const refuelSpeed: number = 50;
+const refuelSpeed: number = 150;
+
+//#region import
 
 import { delay } from "bluebird";
 
@@ -7,6 +9,7 @@ import * as logger from "../utils/logger";
 import * as formatter from "../utils/formatter";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
 import * as airplanePool from "../airPlanePool";
 
 import { IMQMessage } from "../model/validation/mqMessage";
@@ -15,6 +18,7 @@ import * as mq from "./mq";
 import { IRefuelReq, validateRefuelReq } from "../model/validation/refuelReq";
 import { LogicalError } from "../errors/logicalError";
 
+//#endregion
 
 export async function refuel(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got request for refuelling");
@@ -36,6 +40,8 @@ async function doRefuel(fuelReq: IRefuelReq, airplane: IAirplane, volume: number
   airplane.fuel += volume;
 }
 
+//#region update
+
 function updateStatusBefore(fuelReq: IRefuelReq, airplane: IAirplane): number {
   assert.AreEqual(AirplaneStatus.OnParkingEmpty, airplane.status.type);
   let volume: number = Math.min(fuelReq.volume, airplane.model.maxFuel - airplane.fuel);
@@ -56,6 +62,8 @@ function updateStatusAfter(airplane: IAirplane): void {
   delete airplane.status.additionalInfo.fuelerCarId;
   logger.log(formatter.airplane(airplane) + ` has been refueled up to ${airplane.fuel}/${airplane.model.maxFuel}`);
 }
+
+//#endregion
 
 function notifyAboutEnd(fuelReq: IRefuelReq, volume: number, mqMessage: IMQMessage): void {
   let body: any = {
