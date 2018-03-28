@@ -71,8 +71,8 @@ function visualizeFuelling(fuelReq: IRefuelReq, duration: number, mqMessage: IMQ
 function notifyAboutEnd(fuelReq: IRefuelReq, volume: number): void {
   let body: any = {
     request: "answer",
-    aircraftid: fuelReq.aircraftId.toString(),
-    fuelerid: fuelReq.carId,
+    aircraftId: fuelReq.aircraftId.toString(),
+    fuelerId: fuelReq.carId,
     fuelUsed: volume,
     status: "ok",
   };
