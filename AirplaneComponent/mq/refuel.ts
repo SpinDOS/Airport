@@ -60,7 +60,7 @@ function updateStatusEnd(airplane: IAirplane): void {
 function visualizeFuelling(fuelReq: IRefuelReq, duration: number, mqMessage: IMQMessage): void {
   let body: any = {
     Type: "animation",
-    AnimationType: "fuelling",
+    AnimationType: "filling",
     Transport: fuelReq.carId.toString(),
     Duration: duration,
   };
