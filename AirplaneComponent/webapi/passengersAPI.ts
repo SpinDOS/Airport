@@ -1,5 +1,7 @@
 export const passengersUrl: string = "http://quantum0.pythonanywhere.com/";
 
+//#region import
+
 import { Guid } from "guid-typescript";
 import * as rp from "request-promise";
 
@@ -12,6 +14,8 @@ import { IBaggage } from "../model/baggage";
 import { validateArray } from "../model/validation/helper";
 import { IResponsePassenger, validatePassenger,
   IPassBagCreateRes, validatePasBagCreateResponse } from "../model/validation/passBagCreateRes";
+
+//#endregion
 
 
 const headers: any = {
@@ -31,6 +35,8 @@ export async function post(url: string, body?: object): Promise<string> {
   })
   .catch(e => onApiError("Passenger API", e));
 }
+
+//#region parseHelpers
 
 export function parseArrayOfPassengers(data: string): IResponsePassenger[] {
     let poco: object = strToPOCO(data);
@@ -65,3 +71,5 @@ export function parseGenerateResponse(data: string): PasAndBag {
 
   return new PasAndBag(passengers, baggages);
 }
+
+//#endregion

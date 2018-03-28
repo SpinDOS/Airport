@@ -1,8 +1,14 @@
+//#region import
+
 import { Guid } from "guid-typescript";
+
 import { IFlight } from "./flight";
 import { IPassenger } from "./passenger";
 import { IBaggage } from "./baggage";
 import { IAirplaneModel } from "./airplaneModel";
+import { AirplaneStatus } from "./airplaneStatus";
+
+//#endregion
 
 export interface IAirplane {
   readonly id: Guid;

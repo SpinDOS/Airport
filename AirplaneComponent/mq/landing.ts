@@ -1,6 +1,8 @@
 const minDuration: number = 7000;
 const maxDuration: number = 15000;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import { IMQMessage } from "../model/validation/mqMessage";
@@ -12,10 +14,12 @@ import * as formatter from "../utils/formatter";
 import { randomInt } from "../utils/random";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
 import * as airplanePool from "../airPlanePool";
 
 import { ILandingReq, validateLandingReq } from "../model/validation/landingReq";
 
+//#endregion
 
 export async function landing(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got request for landing");
@@ -36,6 +40,8 @@ async function land(landingReq: ILandingReq): Promise<void> {
   await delay(duration);
 }
 
+//#region update status
+
 function updateStatusBefore(landingReq: ILandingReq, airplane: IAirplane): void {
   assert.AreEqual(AirplaneStatus.WaitingForLanding, airplane.status.type);
 
@@ -48,6 +54,8 @@ function updateStatusAfter(airplane: IAirplane): void {
   airplane.status.type = AirplaneStatus.WaitingForFollowMe;
   logger.log(formatter.airplane(airplane) + " has landed to " + airplane.status.additionalInfo.stripId);
 }
+
+//#endregion
 
 function notifyAboutEnd(landingReq: ILandingReq, mqMessage: IMQMessage): void {
   let body: any = {

@@ -1,3 +1,5 @@
+//#region import
+
 import Router, { IRouterContext } from "koa-router";
 import HttpStatus from "http-status-codes";
 
@@ -6,6 +8,9 @@ import * as airplanePool from "../airPlanePool";
 
 import * as logger from "../utils/logger";
 import * as formatter from "../utils/formatter";
+
+//#endregion
+
 
 export function register(router: Router): void {
   router.delete("/:airplane", remove);

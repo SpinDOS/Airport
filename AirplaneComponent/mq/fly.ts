@@ -1,5 +1,7 @@
 const duration: number = 10000;
 
+//#region import
+
 import { delay } from "bluebird";
 import { Guid } from "guid-typescript";
 
@@ -13,10 +15,12 @@ import * as formatter from "../utils/formatter";
 import * as logger from "../utils/logger";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
 import * as airplanePool from "../airPlanePool";
 
 import { validateFlyReq } from "../model/validation/fly";
 
+//#endregion
 
 export async function fly(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to fly");
@@ -36,6 +40,8 @@ async function doFly(airplane: IAirplane): Promise<void> {
   await delay(duration);
 }
 
+//#region update status
+
 function updateStatusBefore(airplane: IAirplane): void {
   assert.AreEqual(AirplaneStatus.PreparingToDeparture, airplane.status.type);
   airplane.status.type = AirplaneStatus.Departuring;
@@ -46,6 +52,10 @@ function updateStatusAfter(airplane: IAirplane): void {
   airplanePool.remove(airplane.id);
   logger.log(formatter.airplane(airplane) + " has flown away");
 }
+
+//#endregion
+
+//#region notify
 
 async function notifyAboutEnd(airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
   await notifyPassengers(airplane);
@@ -67,6 +77,8 @@ function notifyFollowMe(airplane: IAirplane, mqMessage: IMQMessage): void {
 
   mq.send(messageToFollowme, mq.followMeMQ, mqMessage.properties.correlationId);
 }
+
+//#endregion
 
 function visualizeFly(airplane: IAirplane): void {
   let message: any = {

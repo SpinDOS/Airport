@@ -1,7 +1,11 @@
+//#region import
+
 import { Guid } from "guid-typescript";
 import { ValidationError } from "../../errors/validationError";
 import { isPositiveNumber } from "../../utils/utils";
 import * as helper from "./helper";
+
+//#endregion
 
 export interface IRefuelReq {
   aircraftId: Guid;

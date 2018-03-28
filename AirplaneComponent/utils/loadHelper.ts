@@ -1,16 +1,23 @@
+//#region import
+
 import * as assert from "./assert";
 import * as logger from "./logger";
 import * as formatter from "./formatter";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
 
 import { LogicalError } from "../errors/logicalError";
+
+//#endregion
 
 
 export const enum LoadTarget {
   Passengers,
   Baggage,
 }
+
+//#region unloading
 
 export function startUnloading(airplane: IAirplane, target: LoadTarget, carId: string): void {
   if (airplane.status.type === AirplaneStatus.OnParkingAfterLandingLoaded) {
@@ -25,6 +32,10 @@ export function endUnloading(airplane: IAirplane, target: LoadTarget, carId: str
   removeCar(airplane, target, carId);
 }
 
+//#endregion
+
+//#region loading
+
 export function startLoading(airplane: IAirplane, target: LoadTarget, carId: string): void {
   if (airplane.status.type === AirplaneStatus.OnParkingEmpty) {
     airplane.status.type = AirplaneStatus.LoadingPassengersAndBaggage;
@@ -38,6 +49,11 @@ export function startLoading(airplane: IAirplane, target: LoadTarget, carId: str
 export function endLoading(airplane: IAirplane, target: LoadTarget, carId: string): void {
   removeCar(airplane, target, carId);
 }
+
+//#endregion
+
+
+//#region checks for end
 
 export function checkUnloadEnd(airplane: IAirplane): boolean {
   if (airplane.baggages.length !== 0 || airplane.passengers.length!== 0) {
@@ -60,6 +76,10 @@ export function checkLoadEnd(airplane: IAirplane): boolean {
   return true;
 }
 
+//#endregion
+
+
+//#region helpers
 
 function addCar(airplane: IAirplane, target: LoadTarget, carId: string): void {
   let collectionName: "buses" | "baggageCars" = getCollectionName(target);
@@ -85,3 +105,5 @@ function removeCar(airplane: IAirplane, target: LoadTarget, carId: string): void
 function getCollectionName(target: LoadTarget): "buses" | "baggageCars" {
   return target === LoadTarget.Passengers? "buses": "baggageCars";
 }
+
+//#endregion

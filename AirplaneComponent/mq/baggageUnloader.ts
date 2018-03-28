@@ -1,5 +1,7 @@
 const unloadSpeed: number = 500;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -19,7 +21,7 @@ import { IBaggage } from "../model/baggage";
 import { validateUnloadBaggageReq, IUnloadBaggageReq } from "../model/validation/baggageReq";
 import * as helper from "../utils/loadHelper";
 
-
+//#endregion
 
 export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to unload baggage");
@@ -44,6 +46,8 @@ async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promis
   return airplane.baggages.splice(0, count);
 }
 
+//#region update status
+
 function updateStatusBefore(unloadReq: IUnloadBaggageReq, airplane: IAirplane): void {
   if (airplane.baggages.length === 0) {
     throw new LogicalError("Can not unload baggage from " + formatter.airplane(airplane) + " because it is empty");
@@ -60,6 +64,8 @@ function updateStatusAfter(unloadReq: IUnloadBaggageReq, airplane: IAirplane, ba
               `${airplane.baggages.length} left`);
   helper.checkUnloadEnd(airplane);
 }
+
+//#endregion
 
 function notifyAboutEnd(unloadReq: IUnloadBaggageReq, baggage: IBaggage[], mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {

@@ -1,4 +1,7 @@
 const unloadSpeed: number = 400;
+
+//#region import
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -19,7 +22,7 @@ import * as passengersAPI from "../webapi/passengersAPI";
 import * as helper from "../utils/loadHelper";
 import { IUnloadPassengersReq, validateUnloadPasReq } from "../model/validation/passengersReq";
 
-
+//#endregion
 
 export async function unloadPassengers(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to unload passengers");
@@ -46,6 +49,8 @@ async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Pro
   return passengers;
 }
 
+//#region update status
+
 function updateStatusBefore(unloadReq: IUnloadPassengersReq, airplane: IAirplane): void {
   if (airplane.passengers.length === 0) {
     throw new LogicalError("Can not unload passengers from " + formatter.airplane(airplane) + " because it is empty");
@@ -62,6 +67,8 @@ function updateStatusAfter(unloadReq: IUnloadPassengersReq, airplane: IAirplane,
               `${airplane.passengers.length} left`);
   helper.checkUnloadEnd(airplane);
 }
+
+//#endregion
 
 async function changePassengersStatus(unloadReq: IUnloadPassengersReq, passengers: IPassenger[]): Promise<void> {
   let body: object = {

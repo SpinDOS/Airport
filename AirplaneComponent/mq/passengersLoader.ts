@@ -1,5 +1,7 @@
 const loadSpeed: number = 500;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -21,7 +23,7 @@ import * as helper from "../utils/loadHelper";
 import { ILoadPassengersReq, validateLoadPassengerReq } from "../model/validation/passengersReq";
 import { IResponsePassenger } from "../model/validation/passBagCreateRes";
 
-
+//#endregion
 
 export async function loadPassengers(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to load passengers");
@@ -51,6 +53,8 @@ async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers
   }
 }
 
+//#region update status
+
 function updateStatusBefore(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
   if (passengers.length + airplane.passengers.length > airplane.departureFlight.passengersCount) {
     throw new LogicalError("Too many passengers to load");
@@ -67,6 +71,10 @@ function updateStatusAfter(loadReq: ILoadPassengersReq, airplane: IAirplane, pas
               `${airplane.passengers.length}/${airplane.departureFlight.passengersCount} total`);
   helper.checkLoadEnd(airplane);
 }
+
+//#endregion
+
+//#region notify
 
 async function notifyAboutEnd(loadReq: ILoadPassengersReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
   await notifyPassengers(loadReq, airplane);
@@ -99,6 +107,8 @@ function notifyBus(loadReq: ILoadPassengersReq, mqMessage: IMQMessage): void {
 
   mq.send(busBody, mqMessage.properties.replyTo!, mqMessage.properties.correlationId);
 }
+
+//#endregion
 
 function visualizeLoad(loadReq: ILoadPassengersReq, duration: number): void {
   let body: any = {

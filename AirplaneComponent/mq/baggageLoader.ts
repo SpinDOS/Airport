@@ -1,5 +1,7 @@
 const loadSpeed: number = 600;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -19,6 +21,7 @@ import { IBaggage } from "../model/baggage";
 import { ILoadBaggageReq, validateLoadBaggageReq } from "../model/validation/baggageReq";
 import * as helper from "../utils/loadHelper";
 
+//#endregion
 
 export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to load baggage");
@@ -45,6 +48,8 @@ async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void
   }
 }
 
+//#region update status
+
 function updateStatusBefore(loadReq: ILoadBaggageReq, airplane: IAirplane): void {
   if (airplane.departureFlight.baggageCount - airplane.baggages.length < loadReq.baggages.length) {
     throw new LogicalError(`Too many baggage to load ${loadReq.baggages.length} into ` + formatter.airplane(airplane));
@@ -61,6 +66,8 @@ function updateStatusAfter(loadReq: ILoadBaggageReq, airplane: IAirplane): void 
               `${airplane.baggages.length} total`);
   helper.checkLoadEnd(airplane);
 }
+
+//#endregion
 
 function notifyAboutEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
@@ -87,5 +94,3 @@ function visualizeLoad(unloadReq: ILoadBaggageReq, duration: number): void {
 
   mq.send(body, mq.visualizerMQ);
 }
-
-

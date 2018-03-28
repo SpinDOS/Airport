@@ -1,6 +1,8 @@
 const minFuelRatio: number = 0.1;
 const maxFuelRatio: number = 0.8;
 
+//#region import
+
 import { Guid } from "guid-typescript";
 
 import { IMQMessage } from "../model/validation/mqMessage";
@@ -18,6 +20,7 @@ import * as airplanePool from "../airPlanePool";
 import { IResponsePassenger } from "../model/validation/passBagCreateRes";
 
 import { generateRandomModel, IAirplaneModel } from "../model/airplaneModel";
+import { AirplaneStatus } from "../model/airplaneStatus";
 import { IAirplane } from "../model/airplane";
 import { IFlight } from "../model/flight";
 import { IPassenger } from "../model/passenger";
@@ -26,7 +29,7 @@ import { IBaggage } from "../model/baggage";
 import { IAirplaneCreateReq, validateAirplaneCreateReq, IFLightReq } from "../model/validation/airplaneCreateReq";
 import { LogicalError } from "../errors/logicalError";
 
-
+//#endregion
 
 export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to create airplane");
@@ -93,15 +96,6 @@ function generatePasAndBagFromAPI(flightReq: IFLightReq, airplaneId: Guid): Prom
   return PassAPIPost("generate_flight", body).then(parseGenerateResponse);
 }
 
-function createLandingFlight(createReq: IAirplaneCreateReq, pasAndBag: PasAndBag): IFlight {
-  return {
-    id: createReq.landingFlight.id,
-    code: createReq.landingFlight.code,
-    passengersCount: pasAndBag.passengers.length,
-    baggageCount: pasAndBag.baggage.length
-  };
-}
-
 function sendMQtoLand(airplane: IAirplane): void {
   let message: any = {
     service: "follow_me",
@@ -110,6 +104,16 @@ function sendMQtoLand(airplane: IAirplane): void {
   };
 
   mq.send(message, mq.followMeMQ);
+}
+
+
+function createLandingFlight(createReq: IAirplaneCreateReq, pasAndBag: PasAndBag): IFlight {
+  return {
+    id: createReq.landingFlight.id,
+    code: createReq.landingFlight.code,
+    passengersCount: pasAndBag.passengers.length,
+    baggageCount: pasAndBag.baggage.length
+  };
 }
 
 class LazyFlight implements IFlight {

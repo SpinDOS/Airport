@@ -1,5 +1,7 @@
 import { ValidationError } from "../errors/validationError";
 
+//#region string
+
 export function isString(s: any): boolean {
   return typeof s === "string";
 }
@@ -7,6 +9,10 @@ export function isString(s: any): boolean {
 export function isNotEmptyString(s: any): boolean {
   return s && isString(s);
 }
+
+//#endregion
+
+//#region numbers
 
 export function isNumber(x: any): boolean {
   return typeof x === "number";
@@ -19,6 +25,8 @@ export function isPositiveNumber(x: any): boolean {
 export function isPositiveInt(n: any): boolean {
   return isPositiveNumber(n) && Number.isInteger(n);
 }
+
+//#endregion
 
 export function strToPOCO(data: any): object {
   if (typeof data === "object") {

@@ -1,3 +1,5 @@
+//#region import
+
 import { IFlight } from "../model/Flight";
 import { IAirplane } from "../model/airplane";
 import { IAirplaneModel } from "../model/airplaneModel";
@@ -5,6 +7,8 @@ import { Guid } from "guid-typescript";
 import { IBaggage } from "../model/baggage";
 import { IPassenger } from "../model/passenger";
 import { ValidationError } from "../errors/validationError";
+
+//#endregion
 
 export function guid(x: Guid): string {
   return x.toString().toUpperCase();
