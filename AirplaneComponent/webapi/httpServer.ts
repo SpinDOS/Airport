@@ -22,6 +22,7 @@ import { validateGuid } from "../model/validation/helper";
 
 import * as followMe from "./followMe";
 import * as info from "./info";
+import * as remove from "./remove";
 
 
 const app: Koa = new Koa();
@@ -59,6 +60,7 @@ function setUpRouter(router: Router): void {
 
   let routerWithAirplane: Router = router.param("airplane", validateAirplaneId);
   followMe.register(routerWithAirplane);
+  remove.register(routerWithAirplane);
 
   router.get("/*", async (ctx) => {
     ctx.body = "Hello World!";
