@@ -144,7 +144,7 @@ def sendVisualize(currentLocation, tempLocation, carid, airplane_id):
     channel = connection.channel()
 
     channel.queue_declare(queue='visualizer', durable=True)
-    duration = 1500
+    duration = 100
     if airplane_id == 0:
         message = json.dumps({
             "Type": "movement",
@@ -240,21 +240,15 @@ class Followme(threading.Thread):
                     with self.stripLock:
                         with self.parkingLock:
                             for car in self.carDict:
-                                print(3)
                                 for strip in self.stripDict:
-                                    print(4)
                                     for parking in self.parkingDict:
-                                        print(5)
                                         if not(self.queueLoad.empty()) and self.carDict[car] and self.stripDict[strip] and self.parkingDict[parking]:
                                             self.carDict[car] = False
                                             self.stripDict[strip] = False
                                             self.parkingDict[parking] = False
                                             t = threading.Thread(target=self.loadboard, args=(self.queueLoad.get(),parking,strip,car,))
-                                            print(2)
                                             t.start()
-                                            print(1)
                                             self.queueLoad.task_done()
-                                            print(0)
 
             if not(self.queueAnswer.empty()):
                 print("Получил ответ")
@@ -294,22 +288,20 @@ class Followme(threading.Thread):
 
         currentPos = finishPos
         nextPos = currentPos
-        finishPos = strip + "AddFollowMe"
+        finishPos = "Strip" + strip + "AddFollowMe"
 
         with self.parkingLock:
-            self.parkingDict[parking_id] = True
+            self.parkingDict[parking_id[0:16]] = True
 
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=airplane_id)
 
         self.endToStrip(stripid=strip, airplane_id=airplane_id)
 
-        sendMaintain(carId=car, aircraftId=airplane_id)
-
         currentPos = finishPos
         nextPos = currentPos
         finishPos = "FollowMeGarage"
 
-        self.sendFly(car, airplane_id)
+        self.sendFly(airplane_id, car)
 
         landing = False
         while not (landing):
@@ -317,8 +309,10 @@ class Followme(threading.Thread):
                 for answer in self.answerDict:
                     if answer == car:
                         for ans in self.answerDict[answer]:
-                            if ans['request'] == 'flicomp':
+                            if ans['request'] == 'flycomp':
                                 landing = True
+
+        sendMaintain(carId=car, aircraftId=airplane_id)
 
         with self.stripLock:
             self.stripDict[strip] = True
@@ -389,7 +383,7 @@ class Followme(threading.Thread):
                                 if ans['request'] == 'movement':
                                     nextPos = ans['to']
             sendVisualize(currentLocation=currentPos, tempLocation=nextPos, carid=carid, airplane_id=airplane_id)
-            time.sleep(1.5)
+            time.sleep(0.1)
             sendMovement(carid, currentPos, nextPos, "done")
             currentPos = nextPos
 
@@ -483,7 +477,7 @@ class Followme(threading.Thread):
         message = json.dumps({
             "type": "Fly",
             "value": {
-                "aircraftid": f"{aircraftid}"
+                "airplaneId": f"{aircraftid}"
             }
         })
         channel.basic_publish(exchange='',
@@ -556,7 +550,7 @@ def callback(ch, method, properties, body):
         if message['request'] == 'landingcomp':
             answer = {'id': properties.correlation_id, 'message': message}
             fm.setAnswer(answer)
-        if message['request'] == 'flicomp':
+        if message['request'] == 'flycomp':
             answer = {'id': properties.correlation_id, 'message': message}
             fm.setAnswer(answer)
     except:
