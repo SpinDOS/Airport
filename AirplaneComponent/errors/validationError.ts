@@ -6,8 +6,11 @@ export class ValidationError extends BaseError {
   }
 
   toString(): string {
-    return !this.message && this.sourceText
-      ? "Validation errors: " + this.sourceText
-      : super.toString();
+    let result: string = this.message || "Validation error";
+    if (!this.sourceText) {
+      return result;
+    }
+
+    return result + ": " + this.sourceText;
   }
 }
