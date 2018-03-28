@@ -50,8 +50,8 @@ function visualizeFly(airplane: IAirplane): void {
 }
 
 async function end(airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
-  notifyFollowMe(airplane, mqMessage);
   await notifyPassengers(airplane);
+  notifyFollowMe(airplane, mqMessage);
 
   airplanePool.remove(airplane.id);
   logger.log(formatter.airplane(airplane) + " has flown away");
@@ -69,11 +69,7 @@ function notifyFollowMe(airplane: IAirplane, mqMessage: IMQMessage): void {
 }
 
 async function notifyPassengers(airplane: IAirplane): Promise<void> {
-  let body: any = {
-    flight: airplane.departureFlight.id.toString(),
-  };
-
-  await passengersAPI.post("fly", body)
-    .catch(e => logger.log(
+  await passengersAPI.post("flight_away/" + airplane.id.toString())
+    .catch(e => logger.error(
       `Error notifying passengers about airplane fly: ${formatter.airplane(airplane)}. ` + e.toString()));
 }
