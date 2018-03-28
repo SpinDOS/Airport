@@ -280,7 +280,7 @@ class Followme(threading.Thread):
             print("Неверный формат")
             exit(1)
 
-        currentPos = "FollowMeGarage1"
+        currentPos = "FollowMeGarage"
         nextPos = currentPos
         finishPos = parking_id
 
@@ -302,7 +302,7 @@ class Followme(threading.Thread):
 
         currentPos = finishPos
         nextPos = currentPos
-        finishPos = "FollowMeGarage1"
+        finishPos = "FollowMeGarage"
 
         self.sendFly(car, airplane_id)
 
