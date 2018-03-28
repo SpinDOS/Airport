@@ -1,3 +1,5 @@
+//#region import
+
 import { IFlight } from "../model/Flight";
 import { IAirplane } from "../model/airplane";
 import { IAirplaneModel } from "../model/airplaneModel";
@@ -5,6 +7,8 @@ import { Guid } from "guid-typescript";
 import { IBaggage } from "../model/baggage";
 import { IPassenger } from "../model/passenger";
 import { ValidationError } from "../errors/validationError";
+
+//#endregion
 
 export function guid(x: Guid): string {
   return x.toString().toUpperCase();
@@ -45,7 +49,7 @@ export function error(err: any, sourceText?: string): string {
     err.sourceText = err.sourceText || sourceText;
   }
 
-  let str: string = err.stack || err.toString();
+  let str: string = err.toString() || unexpectedError;
   if (str === "Error") {
     str = unexpectedError;
   }

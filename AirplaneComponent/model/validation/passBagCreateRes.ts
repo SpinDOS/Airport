@@ -1,7 +1,6 @@
 import { Guid } from "guid-typescript";
-import { ValidationError } from "../../errors/validationError";
 import { validateBaggageId } from "./baggageReq";
-import { isNotEmptyString } from "../../utils/utils";
+import * as helper from "./helper";
 
 export interface IResponsePassenger {
   id: Guid;
@@ -15,47 +14,25 @@ export interface IPassBagCreateRes {
 }
 
 export function validatePasBagCreateResponse(response: any): IPassBagCreateRes {
-  if (!response) {
-    throw new ValidationError("Empty response of creation passengers and baggage");
-  }
-
-  let passengers: Array<any> = response.passengers;
-  if (!(passengers instanceof Array)) {
-    throw new ValidationError("Passengers not found in response of creation passengers and baggage");
-  }
-
-  let service_luggage: Array<any> = response.service_luggage;
-  if (!(service_luggage instanceof Array)) {
-    throw new ValidationError("Baggage not found in response of creation passengers and baggage");
-  }
+  response = helper.validateNotEmpty(response, "Empty response of creation passengers and baggage");
 
   return {
-    passengers: passengers.map(validatePassenger),
-    service_luggage: service_luggage.map(validateBaggageId),
+    passengers:      helper.validateArray(response.passengers, validatePassenger,
+                            "Passengers not found in response of creation passengers and baggage"),
+    service_luggage: helper.validateArray(response.service_luggage, validateBaggageId,
+                           "Baggage not found in response of creation passengers and baggage"),
   };
 }
 
 export function validatePassenger(passenger: any): IResponsePassenger {
-  if (!passenger) {
-    throw new ValidationError("Empty passenger found");
-  }
-
-  let id: any = passenger.id;
-  if (!id || !Guid.isGuid(id)) {
-    throw new ValidationError("Invalid passenger id: " + id);
-  }
-
-  let first_name: any = passenger.first_name;
-  if (!isNotEmptyString(first_name)) {
-    throw new ValidationError("Invalid passenger name: " + first_name);
-  }
+  passenger = helper.validateNotEmpty(passenger, "Empty passenger found");
 
   let luggage: "None" | Guid = passenger.luggage === "None"
-    ? "None" : validateBaggageId(passenger.luggage);
+    ? passenger.luggage : validateBaggageId(passenger.luggage);
 
   return {
-    id: Guid.parse(id),
-    first_name: first_name,
-    luggage: luggage
+    id:         helper.validateGuid(passenger.id, "Invalid passenger id"),
+    first_name: helper.validateNotEmptyString(passenger.first_name, "Invalid passenger name"),
+    luggage:    luggage
   };
 }

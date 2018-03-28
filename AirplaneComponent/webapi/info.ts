@@ -1,4 +1,7 @@
+//#region import
+
 import Router, { IRouterContext } from "koa-router";
+import HttpStatus from "http-status-codes";
 import { Guid } from "guid-typescript";
 
 import * as logger from "../utils/logger";
@@ -8,6 +11,8 @@ import * as airplanePool from "../airPlanePool";
 import { IInfoQueryParams, validateInfoQueryParams } from "../model/validation/infoQueryParams";
 import { IAirplane } from "../model/airplane";
 
+//#endregion
+
 export function register(router: Router): void {
   router.get("/info", info);
 }
@@ -16,7 +21,8 @@ function info(ctx: IRouterContext): void {
   logger.log("Got info request");
   let params: IInfoQueryParams = validateInfoQueryParams(ctx.request.query);
   let result: IAirplane[] = airplanesArray().filter(createFilter(params));
-  ctx.body = JSON.stringify(result.map(format));
+  ctx.response.body = JSON.stringify(result.map(format));
+  ctx.response.status = HttpStatus.OK;
 }
 
 function format(airplane: IAirplane): object {

@@ -1,6 +1,5 @@
 import { Guid } from "guid-typescript";
-import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString } from "../../utils/utils";
+import * as helper from "./helper";
 
 export interface IInfoQueryParams {
   id?: Guid;
@@ -14,27 +13,22 @@ export function validateInfoQueryParams(query: any): IInfoQueryParams {
     return { };
   }
 
-  let parkingId: any = query.parkingId;
-  if (parkingId && !isNotEmptyString(parkingId)) {
-    throw new ValidationError("Invalid parking id in info query: " + parkingId);
-  }
+  let validateParkingFunc: (arg: any) => string = function(arg: any): string {
+    return helper.validateNotEmptyString(arg, "Invalid parking id in info query");
+  };
 
   return {
-    id: validateOptionalGuid(query.id, "airplane"),
-    landingFlightId: validateOptionalGuid(query.landingFlightId, "landing flight"),
-    departureFlightId: validateOptionalGuid(query.departureFlightId, "departure flight"),
-    parkingId: parkingId,
+    id:                 validateOptionalGuid(query.id, "airplane"),
+    landingFlightId:    validateOptionalGuid(query.landingFlightId, "landing flight"),
+    departureFlightId:  validateOptionalGuid(query.departureFlightId, "departure flight"),
+    parkingId:          helper.validateOptional(query.parkingId, validateParkingFunc),
   };
 }
 
 function validateOptionalGuid(guid: any, type: string): Guid | undefined {
-  if (!guid) {
-    return undefined;
-  }
+  let validateFunc: (arg: any) => Guid = function(arg: any): Guid {
+    return helper.validateGuid(arg, `Invalid ${type} id in info request`);
+  };
 
-  if (!Guid.isGuid(guid)) {
-    throw new ValidationError(`Invalid ${type} id in info request: ` + guid);
-  }
-
-  return Guid.parse(guid);
+  return helper.validateOptional(guid, validateFunc);
 }

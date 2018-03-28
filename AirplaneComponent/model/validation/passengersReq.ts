@@ -1,6 +1,5 @@
 import { Guid } from "guid-typescript";
-import { ValidationError } from "../../errors/validationError";
-import { isNotEmptyString, isPositiveInt } from "../../utils/utils";
+import * as helper from "./helper";
 
 export interface IUnloadPassengersReq {
   airplaneId: Guid;
@@ -9,29 +8,12 @@ export interface IUnloadPassengersReq {
 }
 
 export function validateUnloadPasReq(unloadReq: any): IUnloadPassengersReq {
-  if (!unloadReq) {
-    throw new ValidationError("Missing passengers unload parameters");
-  }
-
-  let airplaneId: any = unloadReq.airplaneId;
-  if (!airplaneId || !Guid.isGuid(airplaneId)) {
-    throw new ValidationError("Invalid airplane id to unload passengers: " + airplaneId);
-  }
-
-  let count: any = unloadReq.count;
-  if (!isPositiveInt(count)) {
-    throw new ValidationError("Invalid passengers unload request's count: " + count);
-  }
-
-  let busId: any = unloadReq.busId;
-  if (!isNotEmptyString(busId)) {
-    throw new ValidationError("Invalid bus id of unloading passengers bus: " + busId);
-  }
+  unloadReq = helper.validateNotEmpty(unloadReq, "Missing passengers unload parameters");
 
   return {
-    airplaneId: Guid.parse(airplaneId),
-    count: count,
-    busId: busId,
+    airplaneId: helper.validateGuid(unloadReq.airplaneId, "Invalid airplane id to unload passengers"),
+    busId:      helper.validateNotEmptyString(unloadReq.busId, "Invalid bus id of unloading passengers bus"),
+    count:      helper.validatePositiveInt(unloadReq.count, "Invalid passengers unload request's count"),
    };
 }
 
@@ -41,37 +23,17 @@ export interface ILoadPassengersReq {
   passengers: Guid[];
 }
 
-export function validatePassengerId(passengerId: any): Guid {
-  if (!passengerId || !Guid.isGuid(passengerId)) {
-    throw new ValidationError("Invalid passenger id: " + passengerId);
-  }
-
-  return Guid.parse(passengerId);
+function validatePassengerId(passengerId: any): Guid {
+  return helper.validateGuid(passengerId, "Invalid passenger id");
 }
 
 export function validateLoadPassengerReq(passengersLoadReq: any): ILoadPassengersReq {
-  if (!passengersLoadReq) {
-    throw new ValidationError("Passengers load info not found");
-  }
-
-  let airplaneId: any = passengersLoadReq.airplaneId;
-  if (!airplaneId || !Guid.isGuid(airplaneId)) {
-    throw new ValidationError("Invalid airplane id to unload passengers: " + airplaneId);
-  }
-
-  let busId: any = passengersLoadReq.busId;
-  if (!isNotEmptyString(busId)) {
-    throw new ValidationError("Invalid passengers loading bus id: " + busId);
-  }
-
-  let passengers: Array<any> = passengersLoadReq.passengers;
-  if (passengers.length === 0) {
-    throw new ValidationError("Passengers list to load is empty");
-  }
+  passengersLoadReq = helper.validateNotEmpty(passengersLoadReq, "Passengers load info not found");
 
   return {
-    airplaneId: Guid.parse(airplaneId),
-    busId: passengersLoadReq.busId,
-    passengers: passengers.map(validatePassengerId),
+    airplaneId: helper.validateGuid(passengersLoadReq.airplaneId, "Invalid airplane id to load passengers"),
+    busId:      helper.validateNotEmptyString(passengersLoadReq.busId, "Invalid passengers loading bus id"),
+    passengers: helper.validateNotEmptyArray(passengersLoadReq.passengers, validatePassengerId,
+                      "Passengers list to load not found", "Passengers list to load is empty"),
   };
 }

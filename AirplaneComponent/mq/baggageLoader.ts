@@ -1,5 +1,7 @@
 const loadSpeed: number = 600;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -19,6 +21,7 @@ import { IBaggage } from "../model/baggage";
 import { ILoadBaggageReq, validateLoadBaggageReq } from "../model/validation/baggageReq";
 import * as helper from "../utils/loadHelper";
 
+//#endregion
 
 export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to load baggage");
@@ -26,10 +29,11 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
   let loadReq: ILoadBaggageReq = validateLoadBaggageReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(loadReq.airplaneId);
 
-  updateStatusBeforeLoad(airplane, loadReq);
+  updateStatusBefore(loadReq, airplane);
   await load(loadReq, airplane);
-  notifyAboutLoadEnd(loadReq, mqMessage);
-  updateStatusAfterLoad(airplane, loadReq);
+  updateStatusAfter(loadReq, airplane);
+
+  notifyAboutEnd(loadReq, mqMessage);
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {
@@ -44,26 +48,31 @@ async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void
   }
 }
 
-function updateStatusBeforeLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): void {
-  if (airplane.model.maxBaggageCount - airplane.baggages.length < loadReq.baggages.length) {
-    throw new LogicalError(`Can not load ${loadReq.baggages.length} baggage to ` + formatter.airplane(airplane));
+//#region update status
+
+function updateStatusBefore(loadReq: ILoadBaggageReq, airplane: IAirplane): void {
+  if (airplane.departureFlight.baggageCount - airplane.baggages.length < loadReq.baggages.length) {
+    throw new LogicalError(`Too many baggage to load ${loadReq.baggages.length} into ` + formatter.airplane(airplane));
   }
 
-  helper.startLoading(airplane, "baggageCars", loadReq.carId);
+  helper.startLoading(airplane, helper.LoadTarget.Baggage, loadReq.carId);
   logger.log(formatter.airplane(airplane) + " is loading baggage from " + loadReq.carId);
 }
 
-function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): void {
-  helper.endLoading(airplane, "baggageCars", loadReq.carId);
+function updateStatusAfter(loadReq: ILoadBaggageReq, airplane: IAirplane): void {
+  helper.endLoading(airplane, helper.LoadTarget.Baggage, loadReq.carId);
 
   logger.log(`Loaded ${loadReq.baggages.length} baggage from ${loadReq.carId}. ` +
               `${airplane.baggages.length} total`);
   helper.checkLoadEnd(airplane);
 }
 
-function notifyAboutLoadEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
+//#endregion
+
+function notifyAboutEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
-    throw new ValidationError("Missing 'replyTo' in load baggage request");
+    logger.error("Missing 'replyTo' in load baggage request");
+    return;
   }
 
   let body: any = {
@@ -85,5 +94,3 @@ function visualizeLoad(unloadReq: ILoadBaggageReq, duration: number): void {
 
   mq.send(body, mq.visualizerMQ);
 }
-
-

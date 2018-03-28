@@ -1,3 +1,5 @@
+//#region import
+
 import * as Amqp from "amqplib";
 
 import * as mq from "./mq";
@@ -16,7 +18,7 @@ import { fly } from "./fly";
 import { loadPassengers } from "./passengersLoader";
 import { unloadPassengers } from "./passengersUnloader";
 
-
+//#endregion
 
 export function consumer(message: Amqp.Message | null): void {
   if (!message) {
@@ -39,6 +41,8 @@ export function consumer(message: Amqp.Message | null): void {
   mq.channel.ack(message);
 }
 
+//#region parse and validation
+
 function decodeContent(message: Amqp.Message): string {
   try {
     return message.content.toString(message.properties.contentEncoding || "utf8");
@@ -54,6 +58,8 @@ function parse(str: string): object {
     throw new ValidationError("Invalid MQ message's JSON: " + e.toString());
   }
 }
+
+//#endregion
 
 function handleReq(mqMessage: IMQMessage): void {
   switch (mqMessage.type.toLowerCase()) {
