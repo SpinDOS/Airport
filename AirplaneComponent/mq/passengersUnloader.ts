@@ -27,11 +27,11 @@ export async function unloadPassengers(mqMessage: IMQMessage): Promise<void> {
   let unloadReq: IUnloadPassengersReq = validateUnloadPasReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(unloadReq.airplaneId);
 
-  updateStatusBeforeUnload(unloadReq, airplane);
+  updateStatusBefore(unloadReq, airplane);
   let passengers: IPassenger[] = await unload(unloadReq, airplane);
-  updateStatusAfterUnload(unloadReq, airplane, passengers);
+  updateStatusAfter(unloadReq, airplane, passengers);
 
-  notifyAboutUnloadEnd(unloadReq, passengers, mqMessage);
+  notifyAboutEnd(unloadReq, passengers, mqMessage);
 }
 
 async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Promise<IPassenger[]> {
@@ -46,7 +46,7 @@ async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Pro
   return passengers;
 }
 
-function updateStatusBeforeUnload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): void {
+function updateStatusBefore(unloadReq: IUnloadPassengersReq, airplane: IAirplane): void {
   if (airplane.passengers.length === 0) {
     throw new LogicalError("Can not unload passengers from " + formatter.airplane(airplane) + " because it is empty");
   }
@@ -55,7 +55,7 @@ function updateStatusBeforeUnload(unloadReq: IUnloadPassengersReq, airplane: IAi
   logger.log(formatter.airplane(airplane) + " is unloading passengers to " + unloadReq.busId);
 }
 
-function updateStatusAfterUnload(unloadReq: IUnloadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
+function updateStatusAfter(unloadReq: IUnloadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
   helper.endUnloading(airplane, helper.LoadTarget.Passengers, unloadReq.busId);
 
   logger.log(`Unloaded ${passengers.length} passengers from ${formatter.airplane(airplane)} to ${unloadReq.busId}. ` +
@@ -74,7 +74,7 @@ async function changePassengersStatus(unloadReq: IUnloadPassengersReq, passenger
     `Error notifying passengers about unload airplane: ${formatter.guid(unloadReq.airplaneId)}. ` + e.toString()));
 }
 
-function notifyAboutUnloadEnd(unloadReq: IUnloadPassengersReq, passengers: IPassenger[], mqMessage: IMQMessage): void {
+function notifyAboutEnd(unloadReq: IUnloadPassengersReq, passengers: IPassenger[], mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
     logger.error("Missing 'replyTo' in unload passengers request");
     return;

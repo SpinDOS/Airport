@@ -22,21 +22,21 @@ export async function refuel(mqMessage: IMQMessage): Promise<void> {
   let fuelReq: IRefuelReq = validateRefuelReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(fuelReq.aircraftId);
 
-  let volume: number = updateStatusStart(airplane, fuelReq);
-  await refuelInternal(fuelReq, airplane, mqMessage, volume);
-  updateStatusEnd(airplane);
+  let volume: number = updateStatusBefore(fuelReq, airplane);
+  await doRefuel(fuelReq, airplane, volume);
+  updateStatusAfter(airplane);
 
-  notifyAboutEnd(fuelReq, volume);
+  notifyAboutEnd(fuelReq, volume, mqMessage);
 }
 
-async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage, volume: number): Promise<void> {
+async function doRefuel(fuelReq: IRefuelReq, airplane: IAirplane, volume: number): Promise<void> {
   let duration: number = volume * refuelSpeed;
-  visualizeFuelling(fuelReq, duration, mqMessage);
+  visualizeFuelling(fuelReq, duration);
   await delay(duration);
   airplane.fuel += volume;
 }
 
-function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): number {
+function updateStatusBefore(fuelReq: IRefuelReq, airplane: IAirplane): number {
   assert.AreEqual(AirplaneStatus.OnParkingEmpty, airplane.status.type);
   let volume: number = Math.min(fuelReq.volume, airplane.model.maxFuel - airplane.fuel);
 
@@ -51,24 +51,13 @@ function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): number {
   return volume;
 }
 
-function updateStatusEnd(airplane: IAirplane): void {
+function updateStatusAfter(airplane: IAirplane): void {
   airplane.status.type = AirplaneStatus.OnParkingEmpty;
   delete airplane.status.additionalInfo.fuelerCarId;
   logger.log(formatter.airplane(airplane) + ` has been refueled up to ${airplane.fuel}/${airplane.model.maxFuel}`);
 }
 
-function visualizeFuelling(fuelReq: IRefuelReq, duration: number, mqMessage: IMQMessage): void {
-  let body: any = {
-    Type: "animation",
-    AnimationType: "filling",
-    Transport: fuelReq.carId.toString(),
-    Duration: duration,
-  };
-
-  mq.send(body, mq.visualizerMQ, mqMessage.properties.correlationId);
-}
-
-function notifyAboutEnd(fuelReq: IRefuelReq, volume: number): void {
+function notifyAboutEnd(fuelReq: IRefuelReq, volume: number, mqMessage: IMQMessage): void {
   let body: any = {
     request: "answer",
     aircraftId: fuelReq.aircraftId.toString(),
@@ -77,5 +66,16 @@ function notifyAboutEnd(fuelReq: IRefuelReq, volume: number): void {
     status: "ok",
   };
 
-  mq.send(body, mq.fuelAnswerMQ);
+  mq.send(body, mq.fuelAnswerMQ, mqMessage.properties.correlationId);
+}
+
+function visualizeFuelling(fuelReq: IRefuelReq, duration: number): void {
+  let body: any = {
+    Type: "animation",
+    AnimationType: "filling",
+    Transport: fuelReq.carId.toString(),
+    Duration: duration,
+  };
+
+  mq.send(body, mq.visualizerMQ);
 }

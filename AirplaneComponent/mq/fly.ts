@@ -24,35 +24,27 @@ export async function fly(mqMessage: IMQMessage): Promise<void> {
   let airplaneId: Guid = validateFlyReq(mqMessage.value).airplaneId;
   let airplane: IAirplane = airplanePool.get(airplaneId);
 
-  updateStatusStart(airplane);
-  visualizeFly(airplane);
-  await delay(duration);
-  updateStatusEnd(airplane);
+  updateStatusBefore(airplane);
+  await doFly(airplane);
+  updateStatusAfter(airplane);
 
   await notifyAboutEnd(airplane, mqMessage);
 }
 
-function updateStatusStart(airplane: IAirplane): void {
+async function doFly(airplane: IAirplane): Promise<void> {
+  visualizeFly(airplane);
+  await delay(duration);
+}
+
+function updateStatusBefore(airplane: IAirplane): void {
   assert.AreEqual(AirplaneStatus.PreparingToDeparture, airplane.status.type);
   airplane.status.type = AirplaneStatus.Departuring;
   logger.log(formatter.airplane(airplane) + " is flying from " + airplane.status.additionalInfo.stripId);
 }
 
-function updateStatusEnd(airplane: IAirplane): void {
+function updateStatusAfter(airplane: IAirplane): void {
   airplanePool.remove(airplane.id);
   logger.log(formatter.airplane(airplane) + " has flown away");
-}
-
-function visualizeFly(airplane: IAirplane): void {
-  let message: any = {
-    Type: "animation",
-    AnimationType: "wheelsup",
-    Transport: "Aircraft|" + airplane.id.toString(),
-    Strip: airplane.status.additionalInfo.stripId,
-    Duration: duration,
-  };
-
-  mq.send(message, mq.visualizerMQ);
 }
 
 async function notifyAboutEnd(airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
@@ -74,4 +66,16 @@ function notifyFollowMe(airplane: IAirplane, mqMessage: IMQMessage): void {
   };
 
   mq.send(messageToFollowme, mq.followMeMQ, mqMessage.properties.correlationId);
+}
+
+function visualizeFly(airplane: IAirplane): void {
+  let message: any = {
+    Type: "animation",
+    AnimationType: "wheelsup",
+    Transport: "Aircraft|" + airplane.id.toString(),
+    Strip: airplane.status.additionalInfo.stripId,
+    Duration: duration,
+  };
+
+  mq.send(message, mq.visualizerMQ);
 }

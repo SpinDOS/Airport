@@ -30,11 +30,11 @@ export async function loadPassengers(mqMessage: IMQMessage): Promise<void> {
   let airplane: IAirplane = airplanePool.get(loadReq.airplaneId);
   let passengers: IPassenger[] = await getPassengersFullInfo(loadReq, airplane);
 
-  updateStatusBeforeLoad(loadReq, airplane, passengers);
+  updateStatusBefore(loadReq, airplane, passengers);
   await load(loadReq, airplane, passengers);
-  updateStatusAfterLoad(loadReq, airplane, passengers);
+  updateStatusAfter(loadReq, airplane, passengers);
 
-  await notifyAboutLoadEnd(loadReq, airplane, mqMessage);
+  await notifyAboutEnd(loadReq, airplane, mqMessage);
 }
 
 async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): Promise<void> {
@@ -51,7 +51,7 @@ async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers
   }
 }
 
-function updateStatusBeforeLoad(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
+function updateStatusBefore(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
   if (passengers.length + airplane.passengers.length > airplane.departureFlight.passengersCount) {
     throw new LogicalError("Too many passengers to load");
   }
@@ -60,7 +60,7 @@ function updateStatusBeforeLoad(loadReq: ILoadPassengersReq, airplane: IAirplane
   logger.log(formatter.airplane(airplane) + " is loading passengers from " + loadReq.busId);
 }
 
-function updateStatusAfterLoad(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
+function updateStatusAfter(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): void {
   helper.endLoading(airplane, helper.LoadTarget.Passengers, loadReq.busId);
 
   logger.log(`Loaded ${passengers.length} passengers to ${formatter.airplane(airplane)} from ${loadReq.busId}. ` +
@@ -68,7 +68,7 @@ function updateStatusAfterLoad(loadReq: ILoadPassengersReq, airplane: IAirplane,
   helper.checkLoadEnd(airplane);
 }
 
-async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
+async function notifyAboutEnd(loadReq: ILoadPassengersReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
   await notifyPassengers(loadReq, airplane);
   notifyBus(loadReq, mqMessage);
 }

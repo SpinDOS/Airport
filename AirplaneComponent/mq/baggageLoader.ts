@@ -26,11 +26,11 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
   let loadReq: ILoadBaggageReq = validateLoadBaggageReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(loadReq.airplaneId);
 
-  updateStatusBeforeLoad(airplane, loadReq);
+  updateStatusBefore(loadReq, airplane);
   await load(loadReq, airplane);
-  updateStatusAfterLoad(airplane, loadReq);
+  updateStatusAfter(loadReq, airplane);
 
-  notifyAboutLoadEnd(loadReq, mqMessage);
+  notifyAboutEnd(loadReq, mqMessage);
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {
@@ -45,7 +45,7 @@ async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void
   }
 }
 
-function updateStatusBeforeLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): void {
+function updateStatusBefore(loadReq: ILoadBaggageReq, airplane: IAirplane): void {
   if (airplane.departureFlight.baggageCount - airplane.baggages.length < loadReq.baggages.length) {
     throw new LogicalError(`Too many baggage to load ${loadReq.baggages.length} into ` + formatter.airplane(airplane));
   }
@@ -54,7 +54,7 @@ function updateStatusBeforeLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): 
   logger.log(formatter.airplane(airplane) + " is loading baggage from " + loadReq.carId);
 }
 
-function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): void {
+function updateStatusAfter(loadReq: ILoadBaggageReq, airplane: IAirplane): void {
   helper.endLoading(airplane, helper.LoadTarget.Baggage, loadReq.carId);
 
   logger.log(`Loaded ${loadReq.baggages.length} baggage from ${loadReq.carId}. ` +
@@ -62,7 +62,7 @@ function updateStatusAfterLoad(airplane: IAirplane, loadReq: ILoadBaggageReq): v
   helper.checkLoadEnd(airplane);
 }
 
-function notifyAboutLoadEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
+function notifyAboutEnd(loadReq: ILoadBaggageReq, mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
     logger.error("Missing 'replyTo' in load baggage request");
     return;

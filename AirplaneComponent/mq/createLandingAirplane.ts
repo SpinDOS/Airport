@@ -24,6 +24,7 @@ import { IPassenger } from "../model/passenger";
 import { IBaggage } from "../model/baggage";
 
 import { IAirplaneCreateReq, validateAirplaneCreateReq, IFLightReq } from "../model/validation/airplaneCreateReq";
+import { LogicalError } from "../errors/logicalError";
 
 
 
@@ -36,7 +37,7 @@ export async function createAirplane(mqMessage: IMQMessage): Promise<void> {
   let fuel: number = randomFuel(airplaneModel.maxFuel);
 
   let airplaneId: Guid = Guid.create();
-  let pasAndBag: PasAndBag = await generatePasAndBagFromAPI(airplaneId, createReq.landingFlight);
+  let pasAndBag: PasAndBag = await generatePasAndBagFromAPI(createReq.landingFlight, airplaneId);
 
   let airplane: IAirplane = {
     id: airplaneId,
@@ -80,7 +81,7 @@ function randomFuel(maxFuel: number): number {
   return Math.max(fuel, maxFuel * minFuelRatio);
 }
 
-async function generatePasAndBagFromAPI(airplaneId: Guid, flightReq: IFLightReq): Promise<PasAndBag> {
+function generatePasAndBagFromAPI(flightReq: IFLightReq, airplaneId: Guid): Promise<PasAndBag> {
   let body: any = {
     flightID: flightReq.id.toString(),
     pas: flightReq.passengersCount,
@@ -111,7 +112,7 @@ function sendMQtoLand(airplane: IAirplane): void {
   mq.send(message, mq.followMeMQ);
 }
 
-export class LazyFlight implements IFlight {
+class LazyFlight implements IFlight {
   constructor(flightReq: IFLightReq) {
     this.id = flightReq.id;
     this.code = flightReq.code;
@@ -157,6 +158,9 @@ export class LazyFlight implements IFlight {
     }
 
     let passengers: IResponsePassenger[] = parseArrayOfPassengers(body);
+    if (passengers.length > this._passengersCount) {
+      throw new LogicalError("Too many passengers generated for departure flight " + formatter.guid(this.id));
+    }
 
     this._passengersCount = passengers.length;
     this._baggageCount += passengers.filter(p => p.luggage !== "None").length;
