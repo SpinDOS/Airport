@@ -133,7 +133,7 @@ Strip1 Strip1AddFollowMe
 Strip2FollowMe Strip2
 Strip2 Strip2AddFollowMe
 Strip3FollowMe Strip3
-Strip3 StripAddFollowMe
+Strip3 Strip3AddFollowMe
 Strip1AddFollowMe FromStrip1FollowMe
 Strip2AddFollowMe FromStrip2FollowMe
 Strip3AddFollowMe FromStrip3FollowMe
