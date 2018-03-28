@@ -32,8 +32,9 @@ export async function loadPassengers(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusBeforeLoad(loadReq, airplane, passengers);
   await load(loadReq, airplane, passengers);
-  await notifyAboutLoadEnd(loadReq, airplane, mqMessage);
   updateStatusAfterLoad(loadReq, airplane, passengers);
+
+  await notifyAboutLoadEnd(loadReq, airplane, mqMessage);
 }
 
 async function load(loadReq: ILoadPassengersReq, airplane: IAirplane, passengers: IPassenger[]): Promise<void> {
@@ -68,6 +69,11 @@ function updateStatusAfterLoad(loadReq: ILoadPassengersReq, airplane: IAirplane,
 }
 
 async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
+  await notifyPassengers(loadReq, airplane);
+  notifyBus(loadReq, mqMessage);
+}
+
+async function notifyPassengers(loadReq: ILoadPassengersReq, airplane: IAirplane): Promise<void> {
   let pasBody: object = {
     newStatus: "InAirplane",
     busId: loadReq.busId,
@@ -77,7 +83,9 @@ async function notifyAboutLoadEnd(loadReq: ILoadPassengersReq, airplane: IAirpla
 
   await passengersAPI.post("change_status", pasBody).catch(e => logger.error(
     `Error notifying passengers about loading airplane: ${formatter.flight(airplane.departureFlight)}. ` + e.toString()));
+}
 
+function notifyBus(loadReq: ILoadPassengersReq, mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
     logger.error("Missing 'replyTo' in load passengers request");
     return;

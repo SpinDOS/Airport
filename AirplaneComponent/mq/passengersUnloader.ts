@@ -29,8 +29,9 @@ export async function unloadPassengers(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusBeforeUnload(unloadReq, airplane);
   let passengers: IPassenger[] = await unload(unloadReq, airplane);
-  notifyAboutUnloadEnd(unloadReq, passengers, mqMessage);
   updateStatusAfterUnload(unloadReq, airplane, passengers);
+
+  notifyAboutUnloadEnd(unloadReq, passengers, mqMessage);
 }
 
 async function unload(unloadReq: IUnloadPassengersReq, airplane: IAirplane): Promise<IPassenger[]> {

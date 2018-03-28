@@ -28,8 +28,9 @@ export async function loadBaggage(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusBeforeLoad(airplane, loadReq);
   await load(loadReq, airplane);
-  notifyAboutLoadEnd(loadReq, mqMessage);
   updateStatusAfterLoad(airplane, loadReq);
+
+  notifyAboutLoadEnd(loadReq, mqMessage);
 }
 
 async function load(loadReq: ILoadBaggageReq, airplane: IAirplane): Promise<void> {

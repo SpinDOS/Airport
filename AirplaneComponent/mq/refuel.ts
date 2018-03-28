@@ -24,8 +24,9 @@ export async function refuel(mqMessage: IMQMessage): Promise<void> {
 
   let volume: number = updateStatusStart(airplane, fuelReq);
   await refuelInternal(fuelReq, airplane, mqMessage, volume);
-  notifyAboutEnd(fuelReq, volume);
   updateStatusEnd(airplane);
+
+  notifyAboutEnd(fuelReq, volume);
 }
 
 async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage, volume: number): Promise<void> {

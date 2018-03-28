@@ -29,8 +29,8 @@ export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusBeforeUnload(airplane, unloadReq);
   let baggages: IBaggage[] = await unload(unloadReq, airplane);
-  notifyAboutUnload(baggages, unloadReq, mqMessage);
   updateStatusAfterUnload(airplane, unloadReq, baggages);
+  notifyAboutUnload(baggages, unloadReq, mqMessage);
 }
 
 async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promise<IBaggage[]> {

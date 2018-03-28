@@ -25,8 +25,9 @@ export async function landing(mqMessage: IMQMessage): Promise<void> {
 
   updateStatusStart(airplane, landingReq);
   await land(landingReq);
-  notifyAboutEnd(landingReq, mqMessage);
   updateStatusEnd(airplane);
+
+  notifyAboutEnd(landingReq, mqMessage);
 }
 
 async function land(landingReq: ILandingReq): Promise<void> {
