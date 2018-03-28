@@ -45,7 +45,7 @@ export function error(err: any, sourceText?: string): string {
     err.sourceText = err.sourceText || sourceText;
   }
 
-  let str: string = err.stack || err.toString();
+  let str: string = err.toString() || unexpectedError;
   if (str === "Error") {
     str = unexpectedError;
   }
