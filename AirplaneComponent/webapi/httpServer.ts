@@ -1,6 +1,8 @@
 const host: string = "0.0.0.0";
 const port: number = 8081;
 
+//#region import
+
 import Koa from "koa";
 import Router, { IRouterContext } from "koa-router";
 import { Middleware } from "koa-compose";
@@ -24,6 +26,7 @@ import * as followMe from "./followMe";
 import * as info from "./info";
 import * as remove from "./remove";
 
+//#endregion
 
 const app: Koa = new Koa();
 
@@ -38,6 +41,8 @@ export function start(): void {
   app.listen(port, host);
   logger.log(`Http server is listening on port ${port}: http://localhost:${port}/`);
 }
+
+//#region errors
 
 async function handleErrors(ctx: Koa.Context, next: () => Promise<any>): Promise<any> {
   await next().catch(err => {
@@ -55,24 +60,6 @@ async function handleErrors(ctx: Koa.Context, next: () => Promise<any>): Promise
   });
 }
 
-function setUpRouter(router: Router): void {
-  info.register(router);
-
-  let routerWithAirplane: Router = router.param("airplane", validateAirplaneId);
-  followMe.register(routerWithAirplane);
-  remove.register(routerWithAirplane);
-
-  router.get("/*", async (ctx) => {
-    ctx.body = "Hello World!";
-  });
-}
-
-function validateAirplaneId(id: string, ctx: IRouterContext, next: () => Promise<any>): Promise<any> {
-  let airplaneId: Guid = validateGuid(id, "Http request: Invalid airplane id");
-  ctx.airplane = airplanePool.get(airplaneId);
-  return next();
-}
-
 function getStatusCode(err: any): number {
   if (err instanceof LogicalError || err instanceof ValidationError) {
     return HttpStatus.BAD_REQUEST;
@@ -84,6 +71,8 @@ function getStatusCode(err: any): number {
   return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
+//#endregion
+
 function configureBodyParser(): Middleware<Koa.Context> {
 
   function onError(err: Error, ctx: Koa.Context): void {
@@ -93,3 +82,26 @@ function configureBodyParser(): Middleware<Koa.Context> {
 
   return bodyParser({ onerror: onError });
 }
+
+//#region router
+
+function setUpRouter(router: Router): void {
+  info.register(router);
+
+  let routerWithAirplane: Router = router.param("airplane", validateAirplaneId);
+  followMe.register(routerWithAirplane);
+  remove.register(routerWithAirplane);
+
+  router.get("/*", async (ctx) => {
+    ctx.response.body = "Hello World!";
+    ctx.response.status = HttpStatus.OK;
+  });
+}
+
+function validateAirplaneId(id: string, ctx: IRouterContext, next: () => Promise<any>): Promise<any> {
+  let airplaneId: Guid = validateGuid(id, "Http request: Invalid airplane id");
+  ctx.airplane = airplanePool.get(airplaneId);
+  return next();
+}
+
+//#endregion
