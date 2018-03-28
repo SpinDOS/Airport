@@ -23,12 +23,12 @@ export async function refuel(mqMessage: IMQMessage): Promise<void> {
   let airplane: IAirplane = airplanePool.get(fuelReq.aircraftId);
 
   updateStatusStart(airplane, fuelReq);
-  await refuelInternal(fuelReq, airplane, mqMessage);
-  notifyAboutEnd(fuelReq);
+  let volume: number = await refuelInternal(fuelReq, airplane, mqMessage);
+  notifyAboutEnd(fuelReq, volume);
   updateStatusEnd(airplane);
 }
 
-async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<void> {
+async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessage: IMQMessage): Promise<number> {
   let volume: number = Math.min(fuelReq.volume, airplane.model.maxFuel - airplane.fuel);
 
   if (volume <= 0) {
@@ -39,6 +39,7 @@ async function refuelInternal(fuelReq: IRefuelReq, airplane: IAirplane, mqMessag
   visualizeFuelling(fuelReq, duration, mqMessage);
   await delay(duration);
   airplane.fuel += volume;
+  return volume;
 }
 
 function updateStatusStart(airplane: IAirplane, fuelReq: IRefuelReq): void {
@@ -67,11 +68,12 @@ function visualizeFuelling(fuelReq: IRefuelReq, duration: number, mqMessage: IMQ
   mq.send(body, mq.visualizerMQ, mqMessage.properties.correlationId);
 }
 
-function notifyAboutEnd(fuelReq: IRefuelReq): void {
+function notifyAboutEnd(fuelReq: IRefuelReq, volume: number): void {
   let body: any = {
     request: "answer",
     aircraftid: fuelReq.aircraftId.toString(),
     fuelerid: fuelReq.carId,
+    fuelUsed: volume,
     status: "ok",
   };
 
