@@ -33,6 +33,7 @@ export async function fly(mqMessage: IMQMessage): Promise<void> {
 
 function updateStatus(airplane: IAirplane): void {
   assert.AreEqual(AirplaneStatus.PreparingToDeparture, airplane.status.type);
+  airplane.status.type = AirplaneStatus.Departuring;
   logger.log(formatter.airplane(airplane) + " is flying from " + airplane.status.additionalInfo.stripId);
 }
 
