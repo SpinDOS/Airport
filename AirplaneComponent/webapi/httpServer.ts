@@ -92,7 +92,7 @@ function setUpRouter(router: Router): void {
   followMe.register(routerWithAirplane);
   remove.register(routerWithAirplane);
 
-  router.get("/*", async (ctx) => {
+  router.get("/", async (ctx) => {
     ctx.response.body = "Hello World!";
     ctx.response.status = HttpStatus.OK;
   });
