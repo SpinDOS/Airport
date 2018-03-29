@@ -14,6 +14,7 @@ SOURCES += main.cpp \
     airplain.cpp \
     sender.cpp
 
+QMAKE_CXXFLAGS += -O2
 
 unix:!macx: LIBS += -L$$PWD/lib/ -lrabbitmq
 
