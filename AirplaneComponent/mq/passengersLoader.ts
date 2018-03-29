@@ -2,6 +2,7 @@ const loadSpeed: number = 500;
 
 //#region import
 
+import { Guid } from "guid-typescript";
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -21,7 +22,7 @@ import * as passengersAPI from "../webapi/passengersAPI";
 
 import * as helper from "../utils/loadHelper";
 import { ILoadPassengersReq, validateLoadPassengerReq } from "../model/validation/passengersReq";
-import { IResponsePassenger } from "../model/validation/passBagCreateRes";
+import { IResponsePassenger } from "../model/validation/passengersAPIRes";
 
 //#endregion
 
@@ -82,15 +83,12 @@ async function notifyAboutEnd(loadReq: ILoadPassengersReq, airplane: IAirplane, 
 }
 
 async function notifyPassengers(loadReq: ILoadPassengersReq, airplane: IAirplane): Promise<void> {
-  let pasBody: object = {
-    newStatus: "InAirplane",
-    busId: loadReq.busId,
-    airplaneId: loadReq.airplaneId.toString(),
-    passengers: loadReq.passengers.map(p => p.toString())
-  };
+  let newStatus: string = "InAirplane";
+  let transportId: string = airplane.id.toString();
+  let passengers: Guid[] = loadReq.passengers;
 
-  await passengersAPI.post("change_status", pasBody).catch(e => logger.error(
-    `Error notifying passengers about loading airplane: ${formatter.flight(airplane.departureFlight)}. ` + e.toString()));
+  await passengersAPI.changeStatus(newStatus, transportId, passengers).catch(e => logger.error(
+      `Error notifying passengers about loading airplane: ${formatter.airplane(airplane)}. ` + e.toString()));
 }
 
 function notifyBus(loadReq: ILoadPassengersReq, mqMessage: IMQMessage): void {

@@ -63,7 +63,11 @@ async function notifyAboutEnd(airplane: IAirplane, mqMessage: IMQMessage): Promi
 }
 
 async function notifyPassengers(airplane: IAirplane): Promise<void> {
-  await passengersAPI.post("flight_away/" + airplane.id.toString()).catch(e => logger.error(
+  let newStatus: string = "FlewAway";
+  let transportId: string = airplane.id.toString();
+  let passengers: Guid[] = airplane.passengers.map(p => p.id);
+
+  await passengersAPI.changeStatus(newStatus, transportId, passengers).catch(e => logger.error(
       `Error notifying passengers about airplane fly: ${formatter.airplane(airplane)}. ` + e.toString()));
 }
 

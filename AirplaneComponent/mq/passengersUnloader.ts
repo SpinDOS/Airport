@@ -2,6 +2,7 @@ const unloadSpeed: number = 400;
 
 //#region import
 
+import { Guid } from "guid-typescript";
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -71,13 +72,11 @@ function updateStatusAfter(unloadReq: IUnloadPassengersReq, airplane: IAirplane,
 //#endregion
 
 async function changePassengersStatus(unloadReq: IUnloadPassengersReq, passengers: IPassenger[]): Promise<void> {
-  let body: object = {
-    newStatus: "Landing",
-    busId: unloadReq.busId,
-    passengers: passengers.map(p => p.id.toString())
-  };
+  let newStatus: string = "LandingFromAirplaneToBus";
+  let transportId: string = unloadReq.busId;
+  let passengersIds: Guid[] = passengers.map(p => p.id);
 
-  await passengersAPI.post("change_status", body).catch(e => logger.error(
+  await passengersAPI.changeStatus(newStatus, transportId, passengersIds).catch(e => logger.error(
     `Error notifying passengers about unload airplane: ${formatter.guid(unloadReq.airplaneId)}. ` + e.toString()));
 }
 
