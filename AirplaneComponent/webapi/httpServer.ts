@@ -1,4 +1,4 @@
-const host: string = "0.0.0.0";
+const hostname: string = "0.0.0.0";
 const port: number = 8081;
 
 //#region import
@@ -38,7 +38,7 @@ export function start(): void {
   app.use(configureBodyParser());
   app.use(router.routes());
 
-  app.listen(port, host);
+  app.listen(getPort(), hostname);
   logger.log(`Http server is listening on port ${port}: http://localhost:${port}/`);
 }
 
@@ -105,3 +105,13 @@ function validateAirplaneId(id: string, ctx: IRouterContext, next: () => Promise
 }
 
 //#endregion
+
+function getPort(): number {
+  let envPortNumber: number | undefined = undefined;
+  let envPortStr: string | undefined = process.env.PORT;
+  if (envPortStr) {
+    envPortNumber = parseInt(envPortStr);
+  }
+
+  return envPortNumber || port;
+}
