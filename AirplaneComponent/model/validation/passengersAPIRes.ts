@@ -8,6 +8,8 @@ export interface IResponsePassenger {
   luggage: "None" | Guid;
 }
 
+//#region generate_flight
+
 export interface IPassBagCreateRes {
   passengers: IResponsePassenger[];
   service_luggage: Guid[];
@@ -34,5 +36,15 @@ export function validatePassenger(passenger: any): IResponsePassenger {
     id:         helper.validateGuid(passenger.id, "Invalid passenger id"),
     first_name: helper.validateNotEmptyString(passenger.first_name, "Invalid passenger name"),
     luggage:    luggage
+  };
+}
+
+//#endregion
+
+export function validateChangeStatusRes(changeStatusRes: any): { changed: number } {
+  changeStatusRes = helper.validateNotEmpty(changeStatusRes, "Not found Passengers API change status response");
+
+  return {
+    changed: helper.validateNotNegativeInt(changeStatusRes.changed, "Invalid Passengers API change status 'changed' count"),
   };
 }

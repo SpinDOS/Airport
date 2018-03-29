@@ -8,12 +8,13 @@ import * as rp from "request-promise";
 import { strToPOCO } from "../utils/utils";
 import { onApiError } from "../errors/connectionError";
 import { ValidationError } from "../errors/validationError";
+import * as logger from "../utils/logger";
 
 import { IPassenger } from "../model/passenger";
 import { IBaggage } from "../model/baggage";
 import { validateArray } from "../model/validation/helper";
 import { IResponsePassenger, validatePassenger,
-  IPassBagCreateRes, validatePasBagCreateResponse } from "../model/validation/passBagCreateRes";
+  IPassBagCreateRes, validatePasBagCreateResponse, validateChangeStatusRes } from "../model/validation/passengersAPIRes";
 
 //#endregion
 
@@ -34,6 +35,25 @@ export async function post(url: string, body?: object): Promise<string> {
     body: bodyStr,
   })
   .catch(e => onApiError("Passenger API", e));
+}
+
+
+export async function changeStatus(newStatus: string, transportId: string, passengers: Guid[]): Promise<void> {
+  let body: object = {
+    newStatus: newStatus,
+    transportID: transportId,
+    passengers: passengers.map(p => p.toString()),
+  };
+
+  let validate: (data: string) => void = function (data: string) {
+    let poco: object = strToPOCO(data);
+    let changed: number = validateChangeStatusRes(poco).changed;
+    if (changed !== passengers.length) {
+      logger.error(`Error changing passengers status to ${newStatus}: changed ${changed} instead of ${passengers.length}`);
+    }
+  }
+
+  await post("change_status", body).then(validate);
 }
 
 //#region parseHelpers

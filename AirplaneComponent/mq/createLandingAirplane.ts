@@ -17,7 +17,7 @@ import { passengersUrl, PasAndBag, parseArrayOfPassengers,
 
 import * as airplanePool from "../airPlanePool";
 
-import { IResponsePassenger } from "../model/validation/passBagCreateRes";
+import { IResponsePassenger } from "../model/validation/passengersAPIRes";
 
 import { generateRandomModel, IAirplaneModel } from "../model/airplaneModel";
 import { AirplaneStatus } from "../model/airplaneStatus";
