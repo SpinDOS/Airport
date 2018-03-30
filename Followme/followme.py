@@ -222,7 +222,6 @@ class Followme(threading.Thread):
         while True:
 
             if not(self.queueTakeoff.empty()):
-                print("Получил на взлет")
                 with self.carLock:
                     with self.stripLock:
                         for car in self.carDict:
@@ -235,7 +234,6 @@ class Followme(threading.Thread):
                                     self.queueTakeoff.task_done()
 
             if not(self.queueLoad.empty()):
-                print("Получил на посадку")
                 with self.carLock:
                     with self.stripLock:
                         with self.parkingLock:
@@ -251,7 +249,6 @@ class Followme(threading.Thread):
                                             self.queueLoad.task_done()
 
             if not(self.queueAnswer.empty()):
-                print("Получил ответ")
                 with self.answerLock:
                     answer = self.queueAnswer.get()
                     mess = answer['message']
@@ -282,8 +279,13 @@ class Followme(threading.Thread):
         currentPos = "FollowMeGarage"
         nextPos = currentPos
         finishPos = parking_id
+        print(car, " Получил запрос на взлет ", airplane_id)
+        print(car, " Еду на ", finishPos)
+
 
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=0)
+        print(car, " Забрал самолет ", airplane_id)
+
         self.startToStrip(carid=car, airplane_id=airplane_id)
 
         currentPos = finishPos
@@ -292,9 +294,9 @@ class Followme(threading.Thread):
 
         with self.parkingLock:
             self.parkingDict[parking_id[0:16]] = True
-
+        print(car, " Еду на ", finishPos)
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=airplane_id)
-
+        print(car, " Отвез самолет ", airplane_id)
         self.endToStrip(stripid=strip, airplane_id=airplane_id)
 
         currentPos = finishPos
@@ -302,18 +304,20 @@ class Followme(threading.Thread):
         finishPos = "FollowMeGarage"
 
         self.sendFly(airplane_id, car)
-
-        landing = False
-        while not (landing):
+        print(car, " Разрешил взлет ", airplane_id)
+        fly = False
+        while not (fly):
             with self.answerLock:
                 for answer in self.answerDict:
                     if answer == car:
                         for ans in self.answerDict[answer]:
                             if ans['request'] == 'flycomp':
-                                landing = True
+                                fly = True
+                                self.answerDict[answer].remove(ans)
+
 
         sendMaintain(carId=car, aircraftId=airplane_id)
-
+        print(car, " Еду домой")
         with self.stripLock:
             self.stripDict[strip] = True
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=0)
@@ -331,14 +335,14 @@ class Followme(threading.Thread):
         except:
             print("Неверный формат")
             exit(1)
-        print(car, " Сожаю самолет")
+        print(car, " Сажаю самолет ", airplane_id)
         self.sendStrip(airplane_id, strip, car)
         currentPos = "FollowMeGarage"
         nextPos = currentPos
         finishPos = "Strip"+strip+"FollowMe"
         print(car, " Еду на ", strip)
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=0)
-
+        print(car, " Жду завершения посадки ", airplane_id)
         landing = False
         while not(landing):
             with self.answerLock:
@@ -347,7 +351,9 @@ class Followme(threading.Thread):
                         for ans in self.answerDict[answer]:
                             if ans['request'] == 'landingcomp':
                                 landing = True
+                                self.answerDict[answer].remove(ans)
 
+        print(car, " Самолет сел ", airplane_id)
         self.startToParking(car, airplane_id)
         print(car, " Приципил самолет ", airplane_id)
         currentPos = finishPos
@@ -359,6 +365,7 @@ class Followme(threading.Thread):
         print(car, " Еду на ", parking)
         self.walk(currentPos=currentPos, nextPos=nextPos, finishPos=finishPos, carid=car, airplane_id=airplane_id)
         self.EndToParking(parkingid=parking, airplane_id=airplane_id)
+        print(car, " Отцепил самолет ", airplane_id)
         print(car, " Отправляю accept")
         sendAccept(carId=car, airplane_id=airplane_id, parking_id=parking)
 
@@ -382,7 +389,10 @@ class Followme(threading.Thread):
                             for ans in self.answerDict[answer]:
                                 if ans['request'] == 'movement':
                                     nextPos = ans['to']
+                                    self.answerDict[answer].remove(ans)
+
             sendVisualize(currentLocation=currentPos, tempLocation=nextPos, carid=carid, airplane_id=airplane_id)
+            print(carid, " Еду с точки ", currentPos, ' На точку ', nextPos)
             time.sleep(0.1)
             sendMovement(carid, currentPos, nextPos, "done")
             currentPos = nextPos
