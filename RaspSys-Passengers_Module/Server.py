@@ -6,6 +6,7 @@ import requests
 from flask import request, jsonify
 app = getApp()
 from telelog import telelog
+from sqlalchemy import or_
 
 class Passenger(db.Model):
     __tablename__ = "lab_Passengers"
@@ -17,12 +18,14 @@ class Passenger(db.Model):
     birthdate = db.Column(db.Date)
     luggage = db.Column(db.String(36))
     flight = db.Column(db.String(36))
-    state = db.Column(db.Enum('Unknown', 'WaitForBus', 'InBus', 'WaitForAirplane', 'InAirplane', 'WaitForLuggage', 'Left')) # InBus => InBusToAirport & InBusToAirplane; WaitForBus => WaitForBusToAirport & WaitForBusToAirplane ?
+    #state = db.Column(db.String(40)) #db.Enum('Unknown', 'WaitForBus', 'InBus', 'WaitForAirplane', 'InAirplane', 'WaitForLuggage', 'Left')) # InBus => InBusToAirport & InBusToAirplane; WaitForBus => WaitForBusToAirport & WaitForBusToAirplane ?
+    state = db.Column(db.Enum('InAirplane', 'LandingFromAirplaneToBus', 'InBus', 'LandingFromBusToGate', 'WaitForLuggage', 'Left', 'WaitForBus', 'BoardingToBusFromGate', 'BoardingFromBusToAirplane', 'FlewAway'))
     transport = db.Column(db.String(36)) # ID транспорта, в котором находиться пассажир
+    direction = db.Column(db.Enum('Arriving', 'Departing'))
 
     def serialize(self, extended = False):
         if extended:
-            return {'id': self.Id, 'first_name': self.first_name, 'last_name': self.last_name, 'patronymic': self.patronymic, 'gender': self.gender, 'birthdate': self.birthdate,'luggage': self.luggage,'flight': self.flight, 'state': self.state, 'transport': self.transport}
+            return {'id': self.Id, 'first_name': self.first_name, 'last_name': self.last_name, 'patronymic': self.patronymic, 'gender': self.gender, 'birthdate': self.birthdate,'luggage': self.luggage,'flight': self.flight, 'state': self.state, 'transport': self.transport, 'direction': self.direction}
         else:
             return {'id': self.Id, 'first_name': self.first_name, 'luggage': self.luggage,'flight': self.flight, 'state': self.state}
 
@@ -48,7 +51,7 @@ def gen_flight():
             return '', 400
 
         pas = request.args.get('pas', default = 20, type = int)
-        lug = request.args.get('lug', default = random.randint(12,17), type = int)
+        lug = request.args.get('lug', default = 0, type = int)
         serlug = request.args.get('serlug', default = random.randint(0,4) , type = int)
         arriving = request.args.get('arriving', default = 'false', type = str) in ['True', 'true', '1']
         flight = request.args.get('flightID')#, type = uuid)
@@ -62,21 +65,25 @@ def gen_flight():
                 return '', 400
             transportID = request.args.get('transportID')
     elif request.method == 'POST':
+        telelog('/generate_flight [POST] with json:\n' + str(request.json))
         if 'flightID' not in request.json.keys():
+            telelog('Error 400, no FlightID in json')
             return 'No flightID parameter', 400
 
         pas = int(request.json['pas']) if 'pas' in request.json else 20
-        lug = int(request.json['lug']) if 'lug' in request.json else random.randint(12,17)
+        lug = int(request.json['lug']) if 'lug' in request.json else random.randint(0,pas)
         serlug = int(request.json['serlug']) if 'serlug' in request.json else random.randint(0,4)
-        arriving = True if 'arriving' in request.json and request.json['arriving'] in ['True', 'true', '1'] else False
+        arriving = True if 'arriving' in request.json and request.json['arriving'] in ['True', 'true', '1', True] else False
         flight = request.json['flightID']
 
         if (pas < 0 or pas > 100 or serlug < 0 or serlug > 50 or lug < 0 or pas < lug):
+            telelog(f'Incorrect pas/serlug/lug count\npas: {pas}\nserlug: {serlug}\nlug: {lug}')
             return '', 400
 
         transportID = None
         if (arriving):
             if 'transportID' not in request.json.keys():
+                telelog('Arriving, but no transport ID in params')
                 return '', 400
             transportID = request.json['transportID']
     else:
@@ -105,7 +112,8 @@ def gen_flight():
         birthdate = random_date(date_from, date_to)
         transport = transportID
         place = 'InAirplane' if arriving else 'WaitForBus'
-        new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place, transport = transport)
+        dir = 'Arriving' if arriving else 'Departing'
+        new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place, transport = transport, direction = dir)
         passengers.append(new_passenger)
         j = j + 1
         db.session.add(new_passenger)
@@ -131,6 +139,7 @@ def gen_flight():
 waiting_luggage = set([])
 @app.route('/luggage_notify', methods=['POST'])
 def notify_luggage():
+    telelog('/luggage_notify [POST] with json:\n' + str(request.json))
     global waiting_luggage
     global service_luggage_in_system
 
@@ -147,8 +156,10 @@ def notify_luggage():
     waiting_luggage = [n for n in waiting_luggage if n not in recevied_bags] # удаляем из waiting luggage
     service_luggage_in_system = [n for n in service_luggage_in_system if n not in recevied_bags]
 
-    # удалить пассажиров, которые с багажом
-    db.session.query(Passenger).filter_by(Passenger.in_(passengers_recevied_bags)).delete()
+    # пассажиры уходят с багажом
+    left = db.session.query(Passenger).filter_by(Passenger.in_(passengers_recevied_bags)).all()
+    for x in left:
+        x.state = 'Left'
     db.session.commit()
     # сообщить диману о том что багаж забрали
     requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage/delete', json=recevied_bags)
@@ -157,6 +168,7 @@ def notify_luggage():
 @app.route('/passengers', methods=['POST','GET','DELETE'])
 def passengers_api():
     if request.method == 'GET':
+        telelog('/passengers [GET] with args: {}'.format(dict(request.args)))
         try:
             if 'flight' in request.args.keys():
                 fid = request.args['flight']
@@ -275,3 +287,52 @@ def boardinglanding(action, transport, ids, tid = None, seats = -1, fid = None ,
     telelog('ACTION: {}\nTRANSPORT: {} {}\nIDS: {}\nSEATS COUNT: {}'.format(action, transport.upper(), tid, [x.Id for x in ids], seats))
 
     return jsonify({'result': 'OK', 'passengers': [x.Id for x in ids]}), 200
+
+@app.route('/change_status', methods=['POST'])
+def change_status():
+    if 'newStatus' not in request.json:
+        return 'New status value not found', 400
+    if 'passengers' not in request.json:
+        return 'Passengers list not found', 400
+
+    old_status = request.json['oldStatus'] if 'oldStatus' in request.json else None
+    transportid = request.json['transportID'] if 'transportID' in request.json else None
+    new_status = request.json['newStatus']
+    passengers = request.json['passengers']
+
+    must_be_with_transport = ['InBus', 'FlewAway', 'InAirplane', 'BoardingToBusFromGate', 'BoardingFromBusToAirplane', 'LandingFromAirplaneToBus']
+    if new_status in must_be_with_transport and transportid is None:
+        return 'Transport ID not found', 400
+    elif new_status not in must_be_with_transport and transportid is not None:
+        return 'Transport ID must be null for this status', 400
+
+    telelog('/change_status [POST]\nnew Status: {}, transportID: {}\npassengers:\n{}'.format(new_status,str(transportid),passengers))
+
+    passengers = db.session.query(Passenger).filter(Passenger.Id.in_(passengers))
+    if old_status is not None:
+        passengers = passengers.filter(Passenger.state == old_status)
+    passengers = passengers.all()
+    changed = 0
+    for p in passengers:
+        if not p.state == new_status:
+            p.state = new_status
+            changed = changed + 1
+            p.transport = transportid
+
+    db.session.commit()
+
+    return jsonify({'result': 'OK', 'changed': changed, 'passengers': [x.Id for x in passengers]}), 200
+
+'''
+@app.route('/flight_away/<uuid:aircraft_id>', methods=['POST'])
+def aircraft_flight_away(aircraft_id):
+    pas = db.session.query(Passenger).filter_by(Passenger.transport == aircraft_id and Passenger.state == 'InAirplane')
+    count = pas.count()
+    pas.delete()
+    db.session.commit()
+    return jsonify({'result': 'OK', 'deleted': count})'''
+
+
+# Remove left and flewAway
+db.session.query(Passenger).filter(or_(Passenger.state == 'FlewAway',Passenger.state == 'Left')).delete()
+db.session.commit()
