@@ -247,10 +247,12 @@ class Refueler:
 		self.__done = False
 		self._finishLocation = parkingid
 		volume = getFlueVolum(airplane_id)
-
+		print(self.uuid, " Получил запрос на заправку ", airplane_id)
+		print(self.uuid, " Требуется заправить на ", volume)
 		self.walk()
 
 		self.sendFlue(volume=volume, airplane_id=airplane_id)
+		print(self.uuid, " Заправка окончена ")
 
 		while not(self.__done):
 			pass
@@ -258,6 +260,7 @@ class Refueler:
 		sendMaintain(carId=self.uuid, airplane_id=airplane_id)
 
 		self._finishLocation = self._homeId
+		print(self.uuid, " Еду домой ")
 		self.walk()
 
 
