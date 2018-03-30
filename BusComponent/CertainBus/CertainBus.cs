@@ -131,6 +131,18 @@ namespace CertainBus
         public string result;
     }
 
+    struct VisualizerAnimation
+    {
+        [JsonProperty("Type")]
+        public string Type;
+        [JsonProperty("AnimationType")]
+        public string AnimationType;
+        [JsonProperty("Duration")]
+        public int Duration;
+        [JsonProperty("Transport")]
+        public string Transport;
+    }
+
     struct VisualizerMessage
     {
         [JsonProperty("Type")]
@@ -184,8 +196,8 @@ namespace CertainBus
         public Bus(string initLocation)
         {
             SeatCount = 50;
-            //Id = Guid.NewGuid();
-            Id = new Guid("027cbfab-9d6e-4667-a86e-b8adf986372e");
+            Id = Guid.NewGuid();
+            //Id = new Guid("027cbfab-9d6e-4667-a86e-b8adf986372e");
             Passengers = new List<string>();
             FromLoc = _initLoc = initLocation;
             ParkingId = GateId = AirplaneId = FlightId = ToLoc = FinalDestination = null;
@@ -237,9 +249,9 @@ namespace CertainBus
         static void Main(string[] args)
         {
             garageName = "BusGarage";
-            UNDQName = "Bus"; // "gtc.gate"
-            airplaneQName = "Bus"; // "Airplane"
-            VisualizerQName = "Bus"; // "visualizer"
+            UNDQName = "gtc.gate"; // "gtc.gate"
+            airplaneQName = "Airplane"; // "Airplane"
+            VisualizerQName = "visualizer"; // "visualizer"
             
             APIURL = "http://quantum0.pythonanywhere.com"; // API
 
@@ -248,7 +260,7 @@ namespace CertainBus
             client = new HttpClient();
             client.BaseAddress = new Uri(APIURL);
             
-            timer = new System.Timers.Timer(3000);
+            timer = new System.Timers.Timer(3000); // сколько ждать ответа от диспетчера
             timer.Enabled = false;
 
             factory.Uri = new Uri("amqp://aazhpoyi:wl3G3Fu_s88DNK0Fr0N9XxsUBxmlzUcK" +
@@ -302,14 +314,14 @@ namespace CertainBus
                                 if (thisBus.State == BusStates.ReadyNearAirplane)
                                     LoadPassengersFromAirplane(channel);
                                 else
-                                    LoadPassengersFromGate();
+                                    LoadPassengersFromGate(channel);
                             }
                             else
                             {
                                 if (thisBus.State == BusStates.ReadyNearAirplane)
                                     UnloadPassengersToAirplane(channel);
                                 else
-                                    UnloadPassengersToGate();
+                                    UnloadPassengersToGate(channel);
                             }
                         }
                         ColoredWriteLine(Convert.ToString(thisBus.State), ConsoleColor.Blue);
@@ -456,11 +468,11 @@ namespace CertainBus
             thisBus.State = BusStates.WaitForPassengersNearAirplane;
         }
 
-        static void LoadPassengersFromGate()
+        static void LoadPassengersFromGate(IModel channel)
         {
             thisBus.State = BusStates.Loading;
-            //var parameters = "/passengers?flight=" + thisBus.FlightId + "&status=WaitForBus";
-            var parameters = "/passengers?flight=3f71f88d-bdce-43f2-8c2b-0b7594edb48b";
+            var parameters = "/passengers?flight=" + thisBus.FlightId + "&status=WaitForBus";
+            
             var json = GetJsonFromAPI(client, parameters);
             var passengers = JsonConvert.DeserializeObject<List<Passenger>>(json);
             var passengerCount = Math.Min(passengers.Count, thisBus.SeatCount);
@@ -471,7 +483,7 @@ namespace CertainBus
             PostJsonToApi(client, parameters, thisBus.Id, status);
             ColoredWriteLine("Boarding " + thisBus.Passengers.Count + " passengers from Gate", ConsoleColor.Cyan);
             // TODO visualizer
-            Thread.Sleep(thisBus.Passengers.Count * 100);
+            //VisualizeAnimation(channel, VisualizerQName, thisBus.Passengers.Count * 100);
 
             status = "InBus";
             PostJsonToApi(client, parameters, thisBus.Id, status);
@@ -480,15 +492,15 @@ namespace CertainBus
             thisBus.FinalDestination = thisBus.ParkingId;
         }
 
-        static void UnloadPassengersToGate()
+        static void UnloadPassengersToGate(IModel channel)
         {
             thisBus.State = BusStates.Unloading;
             var parameters = "/change_status";
             var status = "LandingFromBusToGate";
             PostJsonToApi(client, parameters, null, status);
             ColoredWriteLine("Landing " + thisBus.Passengers.Count + " passengers from Bus", ConsoleColor.Cyan);
-            // TODO visualizer
-            Thread.Sleep(thisBus.Passengers.Count * 100);
+            
+            //VisualizeAnimation(channel, VisualizerQName, thisBus.Passengers.Count * 100);
 
             status = "WaitForLuggage";
             PostJsonToApi(client, parameters, null, status);
@@ -589,6 +601,21 @@ namespace CertainBus
             visMes.Type = "movement";
             visMes.From = fromLoc;
             visMes.To = toLoc;
+            visMes.Transport = busQ;
+            visMes.Duration = duration;
+
+            var json = JsonConvert.SerializeObject(visMes);
+            
+            SendToMQ(channel, "", visualizerQName, null, json);
+            
+            Thread.Sleep(duration);
+        }
+
+        static void VisualizeAnimation(IModel channel, string visualizerQName, int duration)
+        {
+            var visMes = new VisualizerAnimation();
+            visMes.Type = "animation";
+            visMes.AnimationType = "passengers";
             visMes.Transport = busQ;
             visMes.Duration = duration;
 
