@@ -45,13 +45,13 @@ export async function changeStatus(newStatus: string, transportId: string, passe
     passengers: passengers.map(p => p.toString()),
   };
 
-  let validate: (data: string) => void = function (data: string) {
+  let validate: (data: string) => void = function (data: string): void {
     let poco: object = strToPOCO(data);
     let changed: number = validateChangeStatusRes(poco).changed;
     if (changed !== passengers.length) {
       logger.error(`Error changing passengers status to ${newStatus}: changed ${changed} instead of ${passengers.length}`);
     }
-  }
+  };
 
   await post("change_status", body).then(validate);
 }
