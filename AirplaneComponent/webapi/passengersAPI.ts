@@ -82,12 +82,9 @@ export function parseGenerateResponse(data: string): PasAndBag {
 
   let passengers: IPassenger[] = response.passengers.map(mapRespPasToPas);
 
-  let baggages: IBaggage[] =
-    passengers.filter(p => !!p.baggageId).map(p => p.baggageId as Guid)
-    .concat(response.service_luggage)
-    .map(guid => {
-      return { id: guid };
-    });
+  let baggages: IBaggage[] = response.service_luggage.map(guid => {
+    return { id: guid };
+  });
 
   return new PasAndBag(passengers, baggages);
 }
