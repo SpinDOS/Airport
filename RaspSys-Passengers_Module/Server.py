@@ -97,7 +97,7 @@ def gen_flight():
         name = random.choice(malenameslist if gender=='male' else femalenameslist)
         surname = random.choice(surnameslist) if gender=='male' else (random.choice(surnameslist)+'a')
         id = uuid.uuid4()
-        luggage = uuid.uuid4() if j < lug else None
+        luggage = str(uuid.uuid4()) if j < lug else None
         if (luggage != None):
             all_luggage.append(str(luggage))
         patronymic = random.choice(malenameslist)
@@ -113,7 +113,7 @@ def gen_flight():
         transport = transportID
         place = 'InAirplane' if arriving else 'WaitForBus'
         dir = 'Arriving' if arriving else 'Departing'
-        new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = str(luggage), flight = str(flight), state = place, transport = transport, direction = dir)
+        new_passenger = Passenger(Id = str(id), first_name = name, last_name = surname, patronymic = patronymic, gender = gender, birthdate = birthdate, luggage = luggage, flight = str(flight), state = place, transport = transport, direction = dir)
         passengers.append(new_passenger)
         j = j + 1
         db.session.add(new_passenger)
@@ -136,7 +136,7 @@ def gen_flight():
     return jsonify({'passengers_count': pas, 'luggage_count': {'passengers': lug, 'service': serlug}, 'passengers': serialized_passengers, 'service_luggage': service_luggage})
 
 
-waiting_luggage = set([])
+waiting_luggage = set()
 @app.route('/luggage_notify', methods=['POST'])
 def notify_luggage():
     telelog('/luggage_notify [POST] with json:\n' + str(request.json))
@@ -147,26 +147,40 @@ def notify_luggage():
         return '', 400
 
     received = [x for x in request.json['luggage']]
-    waiting_luggage.append(received)
+    waiting_luggage.update(received)
+
+    take_luggage()
+
+    return '', 200
+
+def take_luggage():
+    global waiting_luggage
+    global service_luggage_in_system
+
     waiting_passengers = db.session.query(Passenger).filter(Passenger.state == 'WaitForLuggage').all()
     waiting_passengers_bags = set([x.luggage for x in waiting_passengers])
 
     recevied_bags = (waiting_passengers_bags | set(service_luggage_in_system)) & waiting_luggage # багаж и пассажиры, которые нашли друг друга
-    passengers_recevied_bags = list(filter(lambda x: x.luggage in recevied_bags, waiting_passengers)) # пассажиры, багаж которых прибыл
-    waiting_luggage = [n for n in waiting_luggage if n not in recevied_bags] # удаляем из waiting luggage
+    passengers_recevied_bags = [x.Id for x in list(filter(lambda x: x.luggage in recevied_bags, waiting_passengers))] # пассажиры, багаж которых прибыл
+    waiting_luggage = set([n for n in waiting_luggage if n not in recevied_bags]) # удаляем из waiting luggage
     service_luggage_in_system = [n for n in service_luggage_in_system if n not in recevied_bags]
 
     # пассажиры уходят с багажом
-    left = db.session.query(Passenger).filter_by(Passenger.in_(passengers_recevied_bags)).all()
+    left = db.session.query(Passenger).filter(Passenger.Id.in_(passengers_recevied_bags)).all()
     for x in left:
         x.state = 'Left'
     db.session.commit()
 
     # сообщить диману о том что багаж забрали
     if len(recevied_bags) > 0:
-        requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage/delete', json=recevied_bags)
+        requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage/delete', json=list(recevied_bags))
 
-    return '', 200
+
+@app.route('/waiting_luggage', methods=['GET'])
+def get_waiting_luggage():
+    global waiting_luggage
+    global service_luggage_in_system
+    return jsonify({"Waiting Luggage": list(waiting_luggage), "Waiting service luggage": list(service_luggage_in_system)})
 
 @app.route('/passengers', methods=['POST','GET','DELETE'])
 def passengers_api():
@@ -329,7 +343,7 @@ def change_status():
                     p.state = 'WaitForLuggage'
 
     if new_status == 'InGate':
-        notify_luggage()
+        take_luggage()
 
     db.session.commit()
 
