@@ -322,6 +322,8 @@ def change_status():
         return 'Transport ID not found', 400
     elif new_status not in must_be_with_transport and transportid is not None:
         return 'Transport ID must be null for this status', 400
+    if new_status in ['WaitForLuggage', 'Left']:
+        return 'Cannot set this status, use status InGate', 400
 
     telelog('/change_status [POST]\nnew Status: {}, transportID: {}\npassengers:\n{}'.format(new_status,str(transportid),passengers))
 
