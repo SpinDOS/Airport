@@ -4,7 +4,9 @@ import * as Amqp from "amqplib";
 
 import * as mq from "./mq";
 import { IMQMessage, validateMQMessage } from "../model/validation/mqMessage";
+
 import { ValidationError } from "../errors/validationError";
+import { BaseError } from "../errors/baseError";
 
 import * as logger from "../utils/logger";
 import * as formatter from "../utils/formatter";
@@ -20,7 +22,7 @@ import { unloadPassengers } from "./passengersUnloader";
 
 //#endregion
 
-export function consumer(message: Amqp.Message | null): void {
+export async function consumer(message: Amqp.Message | null): Promise<void> {
   if (!message) {
     return;
   }
@@ -33,8 +35,13 @@ export function consumer(message: Amqp.Message | null): void {
     mqMessage.properties.correlationId = message.properties.correlationId;
     mqMessage.properties.replyTo = message.properties.replyTo;
 
-    handleReq(mqMessage);
+    await handleReq(mqMessage);
   } catch(e) {
+    if (!(e instanceof BaseError)) {
+      mq.channel.reject(message!, false);
+      throw e;
+    }
+
     logger.error(formatter.error(e, str));
   }
 
@@ -61,32 +68,24 @@ function parse(str: string): object {
 
 //#endregion
 
-function handleReq(mqMessage: IMQMessage): void {
+function handleReq(mqMessage: IMQMessage): Promise<void> {
   switch (mqMessage.type.toLowerCase()) {
     case "createlandingairplane":
-      createAirplane(mqMessage);
-      break;
+      return createAirplane(mqMessage);
     case "unloadbaggage":
-      unloadBaggage(mqMessage);
-      break;
+      return unloadBaggage(mqMessage);
     case "loadbaggage":
-      loadBaggage(mqMessage);
-      break;
+      return loadBaggage(mqMessage);
     case "landing":
-      landing(mqMessage);
-      break;
+      return landing(mqMessage);
     case "refuel":
-      refuel(mqMessage);
-      break;
+      return refuel(mqMessage);
     case "fly":
-      fly(mqMessage);
-      break;
+      return fly(mqMessage);
     case "loadpassengers":
-      loadPassengers(mqMessage);
-      break;
+      return loadPassengers(mqMessage);
     case "unloadpassengers":
-      unloadPassengers(mqMessage);
-      break;
+      return unloadPassengers(mqMessage);
 
     default:
       throw new ValidationError("Invalid MQ message type: " + mqMessage.type);
