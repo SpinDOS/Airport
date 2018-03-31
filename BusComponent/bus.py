@@ -228,7 +228,7 @@ class Bus:
 
         self.change_passenger_status("LandingForBusToGate")
         self.animate_loading()
-        self.change_passenger_status("WaitForLuggage")
+        self.change_passenger_status("InGate")
 
         passenger_list_length = len(self.passenger_list)
         self.passenger_list = []
