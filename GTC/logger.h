@@ -58,6 +58,7 @@ public:
 	{
 		qInfo() << "[DUMP] begin ------------------------------";
 		fwrite(e.message.body.bytes, sizeof (char), e.message.body.len, stdout);
+		fflush(stdout);
 		qInfo() << "[DUMP] end   ------------------------------";
 	}
 
