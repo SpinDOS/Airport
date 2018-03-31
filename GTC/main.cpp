@@ -36,7 +36,7 @@ void start()
 				state = GtcState::Reopening;
 			break;
 		case GtcState::Processing:
-			r = gtc.process();
+			r = gtc.consume();
 			if (r == EINVAL)
 				state = GtcState::Closing;
 			else if (r == EAGAIN)
@@ -71,7 +71,6 @@ void shutdown_handler(int)
 
 	exit(EXIT_SUCCESS);
 }
-
 
 int main(int argc, char* argv[])
 {

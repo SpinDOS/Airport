@@ -1,9 +1,12 @@
 const minFuelRatio: number = 0.6;
 
+//#region import
+
 import Router, { IRouterContext } from "koa-router";
 import HttpStatus from "http-status-codes";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
 import * as airplanePool from "../airPlanePool";
 
 import * as logger from "../utils/logger";
@@ -14,6 +17,8 @@ import { LogicalError } from "../errors/logicalError";
 
 import { validateFMStart, validateFMEndToParking, validateFMEndToStrip } from "../model/validation/followMe";
 
+//#endregion
+
 
 const prefix: string = "/:airplane/followMe/";
 export function register(router: Router): void {
@@ -22,6 +27,8 @@ export function register(router: Router): void {
   router.post(prefix + "startToStrip", startFollowingToStrip);
   router.post(prefix + "endToStrip", endFollowingToStrip);
 }
+
+//#region parking
 
 function startFollowingToParking(ctx: IRouterContext): void {
   logger.log("Got request to start following Follow-Me to parking");
@@ -56,8 +63,9 @@ function endFollowingToParking(ctx: IRouterContext): void {
   ctx.response.status = HttpStatus.OK;
 }
 
+//#endregion
 
-
+//#region strip
 
 function startFollowingToStrip(ctx: IRouterContext): void {
   logger.log("Got request to start following Follow-Me to strip");
@@ -102,5 +110,4 @@ function endFollowingToStrip(ctx: IRouterContext): void {
   ctx.response.status = HttpStatus.OK;
 }
 
-
-
+//#endregion

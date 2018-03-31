@@ -1,39 +1,59 @@
+//#region import
+
 import * as assert from "./assert";
 import * as logger from "./logger";
 import * as formatter from "./formatter";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
+
+import { LogicalError } from "../errors/logicalError";
+
+//#endregion
 
 
-export type airplaneCollectionName = "buses" | "baggageCars";
+export const enum LoadTarget {
+  Passengers,
+  Baggage,
+}
 
-export function startUnloading(airplane: IAirplane, collectionName: airplaneCollectionName, carId: string): void {
+//#region unloading
+
+export function startUnloading(airplane: IAirplane, target: LoadTarget, carId: string): void {
   if (airplane.status.type === AirplaneStatus.OnParkingAfterLandingLoaded) {
     airplane.status.type = AirplaneStatus.UnloadingPassengersAndBaggage;
   } else {
     assert.AreEqual(AirplaneStatus.UnloadingPassengersAndBaggage, airplane.status.type);
   }
-
-  addCar(airplane, collectionName, carId);
+  addCar(airplane, target, carId);
 }
 
-export function endUnloading(airplane: IAirplane, collectionName: airplaneCollectionName, carId: string): void {
-  removeCar(airplane, collectionName, carId);
+export function endUnloading(airplane: IAirplane, target: LoadTarget, carId: string): void {
+  removeCar(airplane, target, carId);
 }
 
-export function startLoading(airplane: IAirplane, collectionName: airplaneCollectionName, carId: string): void {
+//#endregion
+
+//#region loading
+
+export function startLoading(airplane: IAirplane, target: LoadTarget, carId: string): void {
   if (airplane.status.type === AirplaneStatus.OnParkingEmpty) {
     airplane.status.type = AirplaneStatus.LoadingPassengersAndBaggage;
   } else {
     assert.AreEqual(AirplaneStatus.LoadingPassengersAndBaggage, airplane.status.type);
   }
 
-  addCar(airplane, collectionName, carId);
+  addCar(airplane, target, carId);
 }
 
-export function endLoading(airplane: IAirplane, collectionName: airplaneCollectionName, carId: string): void {
-  removeCar(airplane, collectionName, carId);
+export function endLoading(airplane: IAirplane, target: LoadTarget, carId: string): void {
+  removeCar(airplane, target, carId);
 }
+
+//#endregion
+
+
+//#region checks for end
 
 export function checkUnloadEnd(airplane: IAirplane): boolean {
   if (airplane.baggages.length !== 0 || airplane.passengers.length!== 0) {
@@ -56,15 +76,22 @@ export function checkLoadEnd(airplane: IAirplane): boolean {
   return true;
 }
 
+//#endregion
 
-function addCar(airplane: IAirplane, collectionName: airplaneCollectionName, carId: string): void {
+
+//#region helpers
+
+function addCar(airplane: IAirplane, target: LoadTarget, carId: string): void {
+  let collectionName: "buses" | "baggageCars" = getCollectionName(target);
+
   if (!airplane.status.additionalInfo[collectionName]) {
     airplane.status.additionalInfo[collectionName] = [];
   }
   airplane.status.additionalInfo[collectionName]!.push(carId);
 }
 
-function removeCar(airplane: IAirplane, collectionName: airplaneCollectionName, carId: string): void {
+function removeCar(airplane: IAirplane, target: LoadTarget, carId: string): void {
+  let collectionName: "buses" | "baggageCars" = getCollectionName(target);
   let arr: Array<string> = airplane.status.additionalInfo[collectionName]!;
 
   let index: number = arr.findIndex(c => c === carId);
@@ -74,3 +101,9 @@ function removeCar(airplane: IAirplane, collectionName: airplaneCollectionName, 
     delete airplane.status.additionalInfo[collectionName];
   }
 }
+
+function getCollectionName(target: LoadTarget): "buses" | "baggageCars" {
+  return target === LoadTarget.Passengers? "buses": "baggageCars";
+}
+
+//#endregion

@@ -1,4 +1,4 @@
-const enum AirplaneStatus {
+export const enum AirplaneStatus {
   WaitingForLanding = "Waiting for landing",
   Landing = "Landing",
   WaitingForFollowMe = "Waiting for Follow-Me car after landing",

@@ -1,5 +1,7 @@
 const unloadSpeed: number = 500;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import * as mq from "./mq";
@@ -19,7 +21,7 @@ import { IBaggage } from "../model/baggage";
 import { validateUnloadBaggageReq, IUnloadBaggageReq } from "../model/validation/baggageReq";
 import * as helper from "../utils/loadHelper";
 
-
+//#endregion
 
 export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got MQ request to unload baggage");
@@ -27,10 +29,11 @@ export async function unloadBaggage(mqMessage: IMQMessage): Promise<void> {
   let unloadReq: IUnloadBaggageReq = validateUnloadBaggageReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(unloadReq.airplaneId);
 
-  updateStatusBeforeUnload(airplane, unloadReq);
+  updateStatusBefore(unloadReq, airplane);
   let baggages: IBaggage[] = await unload(unloadReq, airplane);
-  notifyAboutUnload(baggages, unloadReq, mqMessage);
-  updateStatusAfterUnload(airplane, unloadReq, baggages);
+  updateStatusAfter(unloadReq, airplane, baggages);
+
+  notifyAboutEnd(unloadReq, baggages, mqMessage);
 }
 
 async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promise<IBaggage[]> {
@@ -43,22 +46,31 @@ async function unload(unloadReq: IUnloadBaggageReq, airplane: IAirplane): Promis
   return airplane.baggages.splice(0, count);
 }
 
-function updateStatusBeforeUnload(airplane: IAirplane, unloadReq: IUnloadBaggageReq): void {
-  helper.startUnloading(airplane, "baggageCars", unloadReq.carId);
+//#region update status
+
+function updateStatusBefore(unloadReq: IUnloadBaggageReq, airplane: IAirplane): void {
+  if (airplane.baggages.length === 0) {
+    throw new LogicalError("Can not unload baggage from " + formatter.airplane(airplane) + " because it is empty");
+  }
+
+  helper.startUnloading(airplane, helper.LoadTarget.Baggage, unloadReq.carId);
   logger.log(formatter.airplane(airplane) + " is unloading baggage to " + unloadReq.carId);
 }
 
-function updateStatusAfterUnload(airplane: IAirplane, unloadReq: IUnloadBaggageReq, baggages: IBaggage[]): void {
-  helper.endUnloading(airplane, "baggageCars", unloadReq.carId);
+function updateStatusAfter(unloadReq: IUnloadBaggageReq, airplane: IAirplane, baggages: IBaggage[]): void {
+  helper.endUnloading(airplane, helper.LoadTarget.Baggage, unloadReq.carId);
 
   logger.log(`Unloaded ${baggages.length} baggage from ${formatter.airplane(airplane)} to ${unloadReq.carId}. ` +
               `${airplane.baggages.length} left`);
   helper.checkUnloadEnd(airplane);
 }
 
-function notifyAboutUnload(baggage: IBaggage[], unloadReq: IUnloadBaggageReq, mqMessage: IMQMessage): void {
+//#endregion
+
+function notifyAboutEnd(unloadReq: IUnloadBaggageReq, baggage: IBaggage[], mqMessage: IMQMessage): void {
   if (!mqMessage.properties.replyTo) {
-    throw new ValidationError("Missing 'replyTo' in unload baggage request");
+    logger.error("Missing 'replyTo' in unload baggage request");
+    return;
   }
 
   let body: any = {

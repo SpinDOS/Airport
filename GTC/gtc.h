@@ -2,6 +2,7 @@
 #define GTC_H
 
 #include <QDebug>
+#include <QQueue>
 #include <QHash>
 
 #include "airplain.h"
@@ -24,6 +25,7 @@ class GtcLogic {
 	TrafficControl _router;
 
 	QHash<QString, Airplain> _airplains;
+	QQueue<amqp_envelope_t> _messages;
 
 	amqp_socket_t *_socket = NULL;
 	amqp_rpc_reply_t _status;
@@ -46,6 +48,8 @@ class GtcLogic {
 	qint32 checkConnection();
 	qint32 checkResponse(amqp_response_type_enum replyType);
 
+	ProcessStatus process(amqp_envelope_t &envelope);
+
 	ProcessStatus processMovementRequest(const QJsonDocument &doc, const amqp_basic_properties_t *prop);
 	ProcessStatus processAcceptRequest(const QJsonDocument &doc);
 	ProcessStatus processMaintainRequest(const QJsonDocument &doc);
@@ -56,7 +60,7 @@ public:
 
 	qint32 init(const QString &configPath);
 	qint32 open();
-	qint32 process();
+	qint32 consume();
 
 	void close();
 	void destroy();

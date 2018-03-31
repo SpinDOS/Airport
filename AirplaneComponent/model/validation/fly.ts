@@ -1,11 +1,10 @@
 import { Guid } from "guid-typescript";
-import { ValidationError } from "../../errors/validationError";
+import * as helper from "./helper";
 
 export function validateFlyReq(fly: any): { airplaneId: Guid } {
-  let airplaneId: any = fly && fly.airplaneId;
-  if (!airplaneId || !Guid.isGuid(airplaneId)) {
-    throw new ValidationError("Invalid airplane id for fly: " + airplaneId);
-  }
+  fly = helper.validateNotEmpty(fly, "Not found fly request params");
 
-  return { airplaneId: Guid.parse(airplaneId) };
+  return {
+    airplaneId: helper.validateGuid(fly.airplaneId, "Invalid airplane id for fly request"),
+  };
 }

@@ -1,10 +1,17 @@
+//#region import
+
+import { Guid } from "guid-typescript";
+
 import { IFlight } from "../model/Flight";
 import { IAirplane } from "../model/airplane";
 import { IAirplaneModel } from "../model/airplaneModel";
-import { Guid } from "guid-typescript";
 import { IBaggage } from "../model/baggage";
 import { IPassenger } from "../model/passenger";
+
 import { ValidationError } from "../errors/validationError";
+import { BaseError } from "../errors/baseError";
+
+//#endregion
 
 export function guid(x: Guid): string {
   return x.toString().toUpperCase();
@@ -34,19 +41,15 @@ export function baggage(x: IBaggage): string {
     return "Baggage " + id(x.id);
 }
 
-export function error(err: any, sourceText?: string): string {
+export function error(err: BaseError, sourceText?: string): string {
   const unexpectedError: string = "Unexpected error occured";
-
-  if (!err) {
-    return unexpectedError;
-  }
 
   if (err instanceof ValidationError) {
     err.sourceText = err.sourceText || sourceText;
   }
 
-  let str: string = err.stack || err.toString();
-  if (str === "Error") {
+  let str: string = err.toString();
+  if (!str || str === "Error") {
     str = unexpectedError;
   }
 

@@ -1,6 +1,8 @@
 const minDuration: number = 7000;
 const maxDuration: number = 15000;
 
+//#region import
+
 import { delay } from "bluebird";
 
 import { IMQMessage } from "../model/validation/mqMessage";
@@ -12,10 +14,12 @@ import * as formatter from "../utils/formatter";
 import { randomInt } from "../utils/random";
 
 import { IAirplane } from "../model/airplane";
+import { AirplaneStatus } from "../model/airplaneStatus";
 import * as airplanePool from "../airPlanePool";
 
 import { ILandingReq, validateLandingReq } from "../model/validation/landingReq";
 
+//#endregion
 
 export async function landing(mqMessage: IMQMessage): Promise<void> {
   logger.log("Got request for landing");
@@ -23,10 +27,11 @@ export async function landing(mqMessage: IMQMessage): Promise<void> {
   let landingReq: ILandingReq = validateLandingReq(mqMessage.value);
   let airplane: IAirplane = airplanePool.get(landingReq.aircraftId);
 
-  updateStatusStart(airplane, landingReq);
+  updateStatusBefore(landingReq, airplane);
   await land(landingReq);
-  notifyAboutEnd(landingReq);
-  updateStatusEnd(airplane);
+  updateStatusAfter(airplane);
+
+  notifyAboutEnd(landingReq, mqMessage);
 }
 
 async function land(landingReq: ILandingReq): Promise<void> {
@@ -35,7 +40,9 @@ async function land(landingReq: ILandingReq): Promise<void> {
   await delay(duration);
 }
 
-function updateStatusStart(airplane: IAirplane, landingReq: ILandingReq): void {
+//#region update status
+
+function updateStatusBefore(landingReq: ILandingReq, airplane: IAirplane): void {
   assert.AreEqual(AirplaneStatus.WaitingForLanding, airplane.status.type);
 
   airplane.status.type = AirplaneStatus.Landing;
@@ -43,9 +50,21 @@ function updateStatusStart(airplane: IAirplane, landingReq: ILandingReq): void {
   logger.log(formatter.airplane(airplane) + " is landing to " + landingReq.stripId);
 }
 
-function updateStatusEnd(airplane: IAirplane): void {
+function updateStatusAfter(airplane: IAirplane): void {
   airplane.status.type = AirplaneStatus.WaitingForFollowMe;
   logger.log(formatter.airplane(airplane) + " has landed to " + airplane.status.additionalInfo.stripId);
+}
+
+//#endregion
+
+function notifyAboutEnd(landingReq: ILandingReq, mqMessage: IMQMessage): void {
+  let body: any = {
+    service: "follow_me",
+    request: "landingcomp",
+    airplaneId: landingReq.aircraftId.toString()
+  };
+
+  mq.send(body, mq.followMeMQ, mqMessage.properties.correlationId);
 }
 
 function visualizeLanding(landingReq: ILandingReq, duration: number): void {
@@ -58,14 +77,4 @@ function visualizeLanding(landingReq: ILandingReq, duration: number): void {
   };
 
   mq.send(body, mq.visualizerMQ);
-}
-
-function notifyAboutEnd(landingReq: ILandingReq): void {
-  let body: any = {
-    service: "follow_me",
-    request: "landingcomp",
-    fmId: landingReq.aircraftId.toString()
-  };
-
-  mq.send(body, mq.followMeMQ);
 }

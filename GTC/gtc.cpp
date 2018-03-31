@@ -38,8 +38,7 @@ qint32 GtcLogic::checkResponse(amqp_response_type_enum replyType)
 
 qint32 GtcLogic::init(const QString &configPath)
 {
-	_log.info("init Gtc Logic");
-
+	_log.info("init gtc logic");
 	QString jsonString;
 	QFile file;
 
@@ -176,6 +175,8 @@ qint32 GtcLogic::open()
 	if (auto r = openMsgQueueStream())
 		return r;
 
+	_log.info("start consuming");
+
 	return 0;
 }
 
@@ -231,17 +232,56 @@ qint32 GtcLogic::openMsgQueueStream()
 	return 0;
 }
 
-qint32 GtcLogic::process()
+qint32 GtcLogic::consume()
 {
-	amqp_envelope_t envelope;
+	amqp_envelope_t envelope = {};
 	amqp_maybe_release_buffers(_env.connect);
 
 	_status = amqp_consume_message(_env.connect, &envelope, NULL, 0);
 	if (auto r = checkResponse(_status.reply_type))
 		return r;
 
+	_messages.push_front(envelope);
+	amqp_basic_ack(_env.connect, _env.channel, envelope.delivery_tag, 0);
+
+	int count = _messages.count();
+	for (int i = 0; i < count; i++) {
+		auto &msg = _messages.front();
+		auto st   = process(msg);
+
+		switch (st) {
+		case ProcessStatus::Ack:
+			_log.info("message process done");
+			amqp_destroy_envelope(&msg);
+			_messages.pop_front();
+			break;
+		case ProcessStatus::Retry:
+			_log.info("requeue message");
+			_messages.move(0, _messages.count() - 1);
+			break;
+		case ProcessStatus::Nack:
+			_log.warn("bad json data");
+			_log.dump(msg);
+			amqp_destroy_envelope(&msg);
+			_messages.pop_front();
+			break;
+		case ProcessStatus::Error:
+			_log.error("fail to process message");
+			_log.dump(msg);
+			_messages.move(0, _messages.count() - 1);
+			return EAGAIN;
+		}
+	}
+
+	return 0;
+}
+
+GtcLogic::ProcessStatus
+GtcLogic::process(amqp_envelope_t &envelope)
+{
 	QByteArray jsonMsg(static_cast<char *>(envelope.message.body.bytes),
 	                   envelope.message.body.len);
+
 	auto doc = QJsonDocument::fromJson(jsonMsg);
 	auto requestObj = doc["request"];
 	auto request = (!requestObj.isUndefined()) ? requestObj.toString()
@@ -257,27 +297,7 @@ qint32 GtcLogic::process()
 	else
 		st = ProcessStatus::Nack;
 
-	switch (st) {
-	case ProcessStatus::Ack:
-		_log.info("ack message");
-		amqp_basic_ack(_env.connect, _env.channel, envelope.delivery_tag, 0);
-		break;
-	case ProcessStatus::Retry:
-		_log.info("requeue " + request + " message");
-		amqp_basic_nack(_env.connect, _env.channel, envelope.delivery_tag, 0, true);
-		break;
-	case ProcessStatus::Nack:
-		_log.warn("bad json data");
-		amqp_basic_nack(_env.connect, _env.channel, envelope.delivery_tag, 0, false);
-		break;
-	case ProcessStatus::Error:
-		_log.error("fail to process " + request + " message");
-		amqp_basic_nack(_env.connect, _env.channel, envelope.delivery_tag, 0, true);
-		break;
-	}
-	amqp_destroy_envelope(&envelope);
-
-	return (st != ProcessStatus::Error) ? 0 : EAGAIN;
+	return st;
 }
 
 void GtcLogic::close()
@@ -441,7 +461,7 @@ GtcLogic::nextService(Airplain::State state, const QString &airplaneId, const QS
 		break;
 	case Airplain::State::Departure:
 		request["service"] = "follow_me";
-		request["parking_id"] = parkingId + "FollowMe";
+		request["parking_id"] = parkingId + "FollowMe" + "Back";
 		r1 = r2 = _sender.postServiceMsg(amqp_cstring_bytes(_env.followMeQueue.constData()), request);
 		break;
 	default:

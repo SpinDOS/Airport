@@ -5,6 +5,6 @@ export class BaseError extends Error {
   }
 
   toString(): string {
-    return (`${this.name}: ${this.message}`) || super.toString();
+    return this.name || this.message? `${this.name}: ${this.message}` : super.toString();
   }
 }
