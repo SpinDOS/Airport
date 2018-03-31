@@ -156,10 +156,7 @@ class BaggageCar:
             print('Error', e)
         finally:
             ch.basic_ack(delivery_tag=method.delivery_tag)
-
-            print(self.baggage_queue.method.message_count)
-            if self.baggage_queue.method.message_count == 0:
-                self.require_route(self.BAGGAGE_GARAGE)
+            self.require_route(self.BAGGAGE_GARAGE)
 
     def unload_airplane(self, airplane_id, parking_id, gate_id):
         log_message(f'Start unload airplane with {airplane_id}')
@@ -273,7 +270,7 @@ class BaggageCar:
             self.load_airplane(airplane_id, parking_id, gate_id)
 
     def visualize(self, location_from, location_to):
-        duration = 1
+        duration = 0.5
         message = {
             'Type': 'movement',
             'From': location_from,
@@ -290,7 +287,7 @@ class BaggageCar:
         log_message(f'send message to visualiser from {location_from} to {location_to}')
 
     def animate_loading(self):
-        duration = len(self.baggage_list)
+        duration = len(self.baggage_list) or self.baggage_capacity
         message = {
             'Type': 'animation',
             'AnimationType': 'baggage',
