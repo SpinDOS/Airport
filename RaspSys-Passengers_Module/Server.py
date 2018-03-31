@@ -19,7 +19,7 @@ class Passenger(db.Model):
     luggage = db.Column(db.String(36))
     flight = db.Column(db.String(36))
     #state = db.Column(db.String(40)) #db.Enum('Unknown', 'WaitForBus', 'InBus', 'WaitForAirplane', 'InAirplane', 'WaitForLuggage', 'Left')) # InBus => InBusToAirport & InBusToAirplane; WaitForBus => WaitForBusToAirport & WaitForBusToAirplane ?
-    state = db.Column(db.Enum('InAirplane', 'LandingFromAirplaneToBus', 'InBus', 'LandingFromBusToGate', 'WaitForLuggage', 'Left', 'WaitForBus', 'BoardingToBusFromGate', 'BoardingFromBusToAirplane', 'FlewAway'))
+    state = db.Column(db.Enum('InAirplane', 'LandingFromAirplaneToBus', 'InBus', 'LandingFromBusToGate', 'InGate', 'WaitForLuggage', 'Left', 'WaitForBus', 'BoardingToBusFromGate', 'BoardingFromBusToAirplane', 'FlewAway'))
     transport = db.Column(db.String(36)) # ID транспорта, в котором находиться пассажир
     direction = db.Column(db.Enum('Arriving', 'Departing'))
 
@@ -130,7 +130,7 @@ def gen_flight():
 
     if (not arriving):
         data = {'flight_id': flight, 'registration': 'kek', 'baggage_ids': all_luggage}
-        res = requests.post('http://dmitryshepelev15.pythonanywhere.com/api/baggage', json=data)
+        requests.post('http://dmitryshepelev15.pythonanywhere.com/api/baggage', json=data)
 
 
     return jsonify({'passengers_count': pas, 'luggage_count': {'passengers': lug, 'service': serlug}, 'passengers': serialized_passengers, 'service_luggage': service_luggage})
@@ -161,8 +161,11 @@ def notify_luggage():
     for x in left:
         x.state = 'Left'
     db.session.commit()
+
     # сообщить диману о том что багаж забрали
-    requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage/delete', json=recevied_bags)
+    if len(recevied_bags) > 0:
+        requests.delete('http://dmitryshepelev15.pythonanywhere.com/api/baggage/delete', json=recevied_bags)
+
     return '', 200
 
 @app.route('/passengers', methods=['POST','GET','DELETE'])
@@ -315,9 +318,18 @@ def change_status():
     changed = 0
     for p in passengers:
         if not p.state == new_status:
-            p.state = new_status
-            changed = changed + 1
-            p.transport = transportid
+            if new_status != 'InGate':
+                p.state = new_status
+                changed = changed + 1
+                p.transport = transportid
+            else:
+                if p.luggage is None:
+                    p.state = 'Left'
+                else:
+                    p.state = 'WaitForLuggage'
+
+    if new_status == 'InGate':
+        notify_luggage()
 
     db.session.commit()
 
