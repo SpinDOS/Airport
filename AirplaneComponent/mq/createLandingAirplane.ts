@@ -167,7 +167,7 @@ class LazyFlight implements IFlight {
     }
 
     this._passengersCount = passengers.length;
-    this._baggageCount += passengers.filter(p => p.luggage !== "None").length;
+    this._baggageCount += passengers.filter(p => !!p.luggage).length;
 
     this._initialized = true;
   }

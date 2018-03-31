@@ -5,7 +5,7 @@ import * as helper from "./helper";
 export interface IResponsePassenger {
   id: Guid;
   first_name: string;
-  luggage: "None" | Guid;
+  luggage: Guid | null;
 }
 
 //#region generate_flight
@@ -29,8 +29,8 @@ export function validatePasBagCreateResponse(response: any): IPassBagCreateRes {
 export function validatePassenger(passenger: any): IResponsePassenger {
   passenger = helper.validateNotEmpty(passenger, "Empty passenger found");
 
-  let luggage: "None" | Guid = passenger.luggage === "None"
-    ? passenger.luggage : validateBaggageId(passenger.luggage);
+  let luggage: Guid | null = passenger.luggage === null
+    ? null : validateBaggageId(passenger.luggage);
 
   return {
     id:         helper.validateGuid(passenger.id, "Invalid passenger id"),

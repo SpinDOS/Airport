@@ -67,7 +67,7 @@ export function mapRespPasToPas(respPas: IResponsePassenger): IPassenger {
   return {
     id: respPas.id,
     name: respPas.first_name,
-    baggageId: respPas.luggage !== "None"? respPas.luggage : undefined,
+    baggageId: respPas.luggage? respPas.luggage : undefined,
   };
 }
 
