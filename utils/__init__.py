@@ -1,22 +1,13 @@
 import pika
-from datetime import datetime
-
-FILE = 'log.txt'
 
 
 def get_channel():
     # credentials = pika.PlainCredentials('user', 'password')
     # parameters = pika.ConnectionParameters('IP here', 5672, '/', credentials)
     # connection = pika.BlockingConnection(parameters)
-    connection = pika.BlockingConnection(pika.ConnectionParameters(host='localhost'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters(host='0.0.0.0'))
     channel = connection.channel()
     return channel
-
-
-def log_message(message):
-    print(message)
-    with open(FILE, 'a') as f:
-        f.write(f'{datetime.now()}. {message}\n')
 
 
 def validate_response(message, expected_fields):
