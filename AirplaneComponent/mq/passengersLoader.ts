@@ -112,7 +112,7 @@ function visualizeLoad(loadReq: ILoadPassengersReq, duration: number): void {
   let body: any = {
     Type: "animation",
     AnimationType: "passengers",
-    Transport: loadReq.busId,
+    Transport: "Bus|" + loadReq.busId,
     Duration: duration,
   };
 
