@@ -5,3 +5,5 @@
 **/packages/**
 .idea/**
 AirplaneComponent/dist/**
+**.db
+**/__pycache__/

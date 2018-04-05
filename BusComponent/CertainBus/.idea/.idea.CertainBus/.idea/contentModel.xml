@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ContentModelStore">
+    <e p="C:\Users\Murchan\.Rider2017.3\system\resharper-host\local\Transient\ReSharperHost\v11\SolutionCaches\_CertainBus.-2035896427.00" t="ExcludeRecursive" />
+    <e p="C:\Users\Murchan\RiderProjects\CertainBus" t="IncludeRecursive">
+      <e p="bin" t="ExcludeRecursive" />
+      <e p="CertainBus.cs" t="Include" />
+      <e p="CertainBus.csproj" t="IncludeRecursive" />
+      <e p="CertainBus.sln" t="IncludeFlat" />
+      <e p="obj" t="ExcludeRecursive">
+        <e p="Debug" t="Include">
+          <e p="netcoreapp2.0" t="Include">
+            <e p="CertainBus.AssemblyInfo.cs" t="Include" />
+          </e>
+        </e>
+      </e>
+      <e p="packages" t="ExcludeRecursive" />
+    </e>
+  </component>
+</project>

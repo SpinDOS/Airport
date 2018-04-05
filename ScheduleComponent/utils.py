@@ -1,42 +1,53 @@
 import json
-import uuid
 import random
 import requests
+from uuid import uuid4
 
-from .config import AIRPLANE_QUEUE_NAME
+from ScheduleComponent.config import (
+    AIRPLANE_QUEUE_NAME,
+    PASSENGER_API_URI,
+)
 
 
 def get_random_code():
-    prefixes = ['S7', 'GH', 'СУ', 'ЮТ', 'ЯК', 'ДР', 'RT', 'LH']
+    prefixes = ['S7', 'GH', 'SU', 'ЮТ', 'ЯК', 'ДР', 'RT', 'LH']
     prefix = random.choice(prefixes)
-    number = random.randint(100, 999)
+    number = random.randint(1000, 9999)
     code = "%s-%s" % (prefix, number)
     return code
 
 
-def send_to_airplane(ch, in_passenger_count, in_service_baggage_count):
+class Flight:
+    def __init__(self, passengers_count, service_baggage_count):
+        self.id = str(uuid4())
+        self.code = get_random_code()
+        self.passengers_count = passengers_count
+        self.service_baggage_count = service_baggage_count
+
+
+def send_to_airplane(ch, landing_flight, departure_flight):
+    print('Landing flight', landing_flight.id)
     airplane_message = {
-        'type': 'AirplaneCreation',
-        'value': {
-            'Рейс на посадку': {
-                'id': str(uuid.uuid4()),
-                'code': get_random_code(),
-                'passenger_count': in_passenger_count,
-                'service_baggage': in_service_baggage_count
+        "type": "CreateLandingAirplane",
+        "value": {
+            "landingFlight": {
+                "id": landing_flight.id,
+                "code": landing_flight.code,
+                "passengersCount": landing_flight.passengers_count,
+                "serviceBaggageCount": landing_flight.service_baggage_count
             },
-            'Рейс на вылет': {
-                'id': str(uuid.uuid4()),
-                'code': get_random_code()
+            "departureFlight": {
+                "id": departure_flight.id,
+                "code": departure_flight.code,
+                "passengersCount": departure_flight.passengers_count,
+                "serviceBaggageCount": departure_flight.service_baggage_count
             }
         }
     }
-    ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message))
+    ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message).encode('utf-8'))
 
 
-def send_to_passengers(out_passenger_count, out_service_baggage_count):
-    flight_id = str(uuid.uuid4())
-    print(flight_id)
-    passenger_count = out_passenger_count
-    service_baggage_count = out_service_baggage_count
-    requests.get(f"{PASSENGER_API_URI}/generate_flight?flightID={flight_id}"
-                 f"&pas={passenger_count}&lug={passenger_count}&serlug={service_baggage_count}")
+def send_to_passengers(flight):
+    print(flight.id)
+    requests.get(f"{PASSENGER_API_URI}/generate_flight?flightID={flight.id}"
+                 f"&pas={flight.passengers_count}&lug={flight.passengers_count}&serlug={flight.service_baggage_count}")
