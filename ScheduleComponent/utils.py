@@ -3,11 +3,14 @@ import random
 import requests
 from uuid import uuid4
 
-from .config import AIRPLANE_QUEUE_NAME
+from ScheduleComponent.config import (
+    AIRPLANE_QUEUE_NAME,
+    PASSENGER_API_URI,
+)
 
 
 def get_random_code():
-    prefixes = ['S7', 'GH', 'СУ', 'ЮТ', 'ЯК', 'ДР', 'RT', 'LH']
+    prefixes = ['S7', 'GH', 'SU', 'ЮТ', 'ЯК', 'ДР', 'RT', 'LH']
     prefix = random.choice(prefixes)
     number = random.randint(1000, 9999)
     code = "%s-%s" % (prefix, number)
@@ -23,9 +26,10 @@ class Flight:
 
 
 def send_to_airplane(ch, landing_flight, departure_flight):
+    print('Landing flight', landing_flight.id)
     airplane_message = {
-        'type': 'AirplaneCreation',
-        'value': {
+        "type": "CreateLandingAirplane",
+        "value": {
             "landingFlight": {
                 "id": landing_flight.id,
                 "code": landing_flight.code,
@@ -40,7 +44,7 @@ def send_to_airplane(ch, landing_flight, departure_flight):
             }
         }
     }
-    ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message))
+    ch.basic_publish(exchange='', routing_key=AIRPLANE_QUEUE_NAME, body=json.dumps(airplane_message).encode('utf-8'))
 
 
 def send_to_passengers(flight):

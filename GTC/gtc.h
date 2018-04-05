@@ -2,27 +2,16 @@
 #define GTC_H
 
 #include <QDebug>
-#include <QObject>
+#include <QQueue>
 #include <QHash>
 
-#include "traffic_controller.h"
-#include "service.h"
+#include "airplain.h"
+#include "env.h"
+#include "sender.h"
+#include "logger.h"
+#include "traffic_control.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-#include <amqp.h>
-#include <amqp_framing.h>
-#include <amqp_tcp_socket.h>
-
-#ifdef __cplusplus
-}
-#endif
-
-class GtcLogic : public QObject {
-	Q_OBJECT
-
+class GtcLogic {
 	enum class ProcessStatus {
 		Ack,
 		Nack,
@@ -30,18 +19,15 @@ class GtcLogic : public QObject {
 		Error
 	};
 
-	TrafficController _controller;
+	Logger _log {"GtcLogic"};
+	Environment _env;
+	AmqpSender  _sender;
+	TrafficControl _router;
 
-	QHash<qint32, Airplain> _airplains;
-
-	const QString MovementRequest = "movement";
-	const QString MaintainRequest = "maintain";
-	const QString AcceptRequest   = "accept";
-	const QString ServiceRequest  = "service";
+	QHash<QString, Airplain> _airplains;
+	QQueue<amqp_envelope_t> _messages;
 
 	amqp_socket_t *_socket = NULL;
-	amqp_connection_state_t _connect = NULL;
-	amqp_bytes_t _queuename = {0, NULL};
 	amqp_rpc_reply_t _status;
 
 	qint32 _port;
@@ -51,25 +37,30 @@ class GtcLogic : public QObject {
 	QString _bindingKey;
 	QString _consumerName;
 
-	qint32 readJsonConfig(const QJsonObject &credits);
-	qint32 initAmqpConnection();
+	qint32 readJsonConfig(const QJsonObject &data);
+	qint32 readHostData(const QJsonObject &data);
+	qint32 readLogicSettings(const QJsonObject &data);
+	qint32 readClientData(const QJsonObject &data);
 
 	qint32 openTcpSocket();
 	qint32 openMsgQueueStream();
 
 	qint32 checkConnection();
+	qint32 checkResponse(amqp_response_type_enum replyType);
 
-	QString getRequest(const QJsonDocument &doc);
+	ProcessStatus process(amqp_envelope_t &envelope);
 
-	ProcessStatus processMovementRequest(const QJsonDocument &doc, amqp_basic_properties_t *prop);
+	ProcessStatus processMovementRequest(const QJsonDocument &doc, const amqp_basic_properties_t *prop);
 	ProcessStatus processAcceptRequest(const QJsonDocument &doc);
 	ProcessStatus processMaintainRequest(const QJsonDocument &doc);
 
+	ProcessStatus nextService(Airplain::State state, const QString &airplaneId, const QString &parkingId);
 public:
+	GtcLogic();
 
 	qint32 init(const QString &configPath);
 	qint32 open();
-	qint32 process();
+	qint32 consume();
 
 	void close();
 	void destroy();

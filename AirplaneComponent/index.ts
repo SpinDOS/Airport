@@ -1,5 +1,5 @@
-import * as logger from './utils/logger';
-import * as mqListen from './mqListen';
+import { start as startMQListen } from "./mq/mq";
+import { start as startHttpServer } from "./webapi/httpServer";
 
-mqListen.start();
-logger.log('Working');
+startHttpServer();
+startMQListen();
