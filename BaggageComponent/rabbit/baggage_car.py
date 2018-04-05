@@ -228,7 +228,6 @@ class BaggageCar:
             airplane_baggage_count -= len(self.baggage_list)
             self.baggage_list = []
 
-
     def load_airplane(self, airplane_id, parking_id, gate_id):
         content = json.loads(requests.get(f'{AIRPLANE_API}/info?id={airplane_id}').content.decode())
         departure_flight_id = content[0]['departureFlightId']

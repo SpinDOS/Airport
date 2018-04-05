@@ -234,7 +234,7 @@ class Bus:
         while passenger_count > 0:
             content = json.loads(
                 requests.get(f'{PASSENGER_API}/passengers?flight={departure_flight_id}&status=WaitForBus')
-                .content.decode())
+                    .content.decode())
 
             for i in range(min(passenger_count, self.bus_capacity)):
                 self.passenger_list.append(str(content[i]['id']))
@@ -283,8 +283,6 @@ class Bus:
             params["transportID"] = transport_id
         content = requests.post(f"{PASSENGER_API}/change_status", json=params).content.decode()
         print(f'got response from passenger api: content = {content}')
-        # content = json.loads(requests.post(f"{PASSENGER_API}/change_status", json=params).content.decode())
-
 
 
 def main():
