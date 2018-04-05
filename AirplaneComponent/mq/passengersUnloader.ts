@@ -99,7 +99,7 @@ function visualizeUnload(unloadReq: IUnloadPassengersReq, duration: number): voi
   let body: any = {
     Type: "animation",
     AnimationType: "passengers",
-    Transport: unloadReq.busId,
+    Transport: "Bus|" + unloadReq.busId,
     Duration: duration,
   };
 

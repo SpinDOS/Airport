@@ -1,6 +1,7 @@
 import * as Amqp from "amqplib";
 import { consumer } from "./mqConsumer";
 import * as logger from "../utils/logger";
+import * as formatter from "../utils/formatter";
 
 export let connection: Amqp.Connection;
 export let channel: Amqp.Channel;
@@ -23,7 +24,11 @@ export async function send(data: object, to: string, correlationId?: any ): Prom
   channel.publish("", to, content, options);
 }
 
-export async function start(): Promise<void> {
+export function start(): void {
+  startAsync().catch(e => logger.error(formatter.error(e)));
+}
+
+async function startAsync(): Promise<void> {
   connection = await Amqp.connect(getConnectonUrl());
   channel = await connection.createChannel();
 
