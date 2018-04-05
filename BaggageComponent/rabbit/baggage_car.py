@@ -143,10 +143,7 @@ class BaggageCar:
                                    body=params)
         print(f'sent maintain message with action {action}')
         ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        # TODO need to check
-        if self.baggage_queue.method.message_count == 0:
-            self.require_route(self.BAGGAGE_GARAGE)
+        self.require_route(self.BAGGAGE_GARAGE)
 
     def visualize(self, location_from, location_to):
         duration = 0.5

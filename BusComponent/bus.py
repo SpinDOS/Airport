@@ -142,10 +142,7 @@ class Bus:
                                    body=params)
         print(f'sent maintain message with action {action}')
         ch.basic_ack(delivery_tag=method.delivery_tag)
-
-        # TODO need to check
-        if self.bus_queue.method.message_count == 0:
-            self.require_route(self.BUS_GARAGE)
+        self.require_route(self.BUS_GARAGE)
 
     def visualize(self, location_from, location_to):
         duration = 0.5
@@ -214,7 +211,7 @@ class Bus:
 
             self.change_passenger_status("InBus", f"{self.id}")
             self.require_route(gate_id)
-            self.change_passenger_status("LandingForBusToGate")
+            self.change_passenger_status("LandingFromBusToGate")
             self.animate()
             self.change_passenger_status("InGate")
 
@@ -235,6 +232,10 @@ class Bus:
             return
 
         while passenger_count > 0:
+            content = json.loads(
+                requests.get(f'{PASSENGER_API}/passengers?flight={departure_flight_id}&status=WaitForBus')
+                .content.decode())
+
             for i in range(min(passenger_count, self.bus_capacity)):
                 self.passenger_list.append(str(content[i]['id']))
 
@@ -280,8 +281,10 @@ class Bus:
         }
         if transport_id is not None:
             params["transportID"] = transport_id
-        content = json.loads(requests.post(f"{AIRPLANE_API}/change_status", json=params).content.decode())
+        content = requests.post(f"{PASSENGER_API}/change_status", json=params).content.decode()
         print(f'got response from passenger api: content = {content}')
+        # content = json.loads(requests.post(f"{PASSENGER_API}/change_status", json=params).content.decode())
+
 
 
 def main():
