@@ -27,7 +27,7 @@
     "request": "^2.85.0",
     "request-promise": "^4.2.2",
     "sync-request": "^6.0.0",
-    "tsd": "^0.6.5",
+    "tsd": "^0.24.1",
     "typescript": "^2.7.2"
   },
   "devDependencies": {}
